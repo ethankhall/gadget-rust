@@ -1,0 +1,3 @@
+definitions:
+    lookup: foo
+    bank: https://www.google.com
