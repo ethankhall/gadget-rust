@@ -1,6 +1,5 @@
 phases:
   - phase: Windows_Build
-    dependsOn: Linux_Build
     queue: Hosted VS2017
     steps:
       - powershell: |
@@ -49,3 +48,9 @@ phases:
           PathtoPublish: ./target/x86_64-unknown-linux-musl/release/gogo
           ArtifactType: Container
           ArtifactName: gogo-linux
+      - task: PublishBuildArtifacts@1
+        displayName: "Publish Artifact: Release Toml"
+        inputs:
+          PathtoPublish: .release-manager.toml
+          ArtifactType: Container
+          ArtifactName: gogo-release-manager
