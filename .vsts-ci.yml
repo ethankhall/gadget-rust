@@ -30,7 +30,7 @@ phases:
           detached: false
           containerregistrytype: 'Container Registry'
           dockerFile: '.docker/musl-linux.Dockerfile'
-          imageName: 'release-manager-musl'
+          imageName: 'gogo-musl'
 
       - task: Docker@0
         displayName: Build Application
