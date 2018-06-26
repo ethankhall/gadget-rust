@@ -49,15 +49,18 @@ fn log_level(number_of_verbose: i32) -> Level {
     };
 }
 
+#[cfg(windows)]
+fn is_color_enabled() -> bool {
+    return ansi_term::enable_ansi_support().is_ok();
+}
+
+#[cfg(not(windows))]
+fn is_color_enabled() -> bool {
+    return true;
+}
+
 fn configure_logging_output(logging_level: Level, dispatch: Dispatch) -> Dispatch {
-
-    let colors_enabled = if cfg!(target_os = "windows") {
-        ansi_term::enable_ansi_support()
-    } else {
-        Ok(())
-    };
-
-    let colors = if colors_enabled.is_ok() {
+    let colors = if is_color_enabled() {
         ColoredLevelConfig::new()
             .info(Color::Green)
             .warn(Color::Magenta)
