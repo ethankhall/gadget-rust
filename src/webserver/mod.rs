@@ -2,6 +2,7 @@ use iron::prelude::*;
 use router::Router;
 use std::error::Error;
 use std::fmt::{self, Debug};
+use std::sync::Arc;
 
 use super::datasource::DataSourceContainer;
 
@@ -21,7 +22,7 @@ impl Error for StringError {
     fn description(&self) -> &str { &*self.0 }
 }
 
-pub fn exec_webserver(datasource: DataSourceContainer) {
+pub fn exec_webserver(datasource: Arc<DataSourceContainer>) {
     let redirect_handler = redirect::RedirectRequestHandler::new(datasource);
     let gadget_handler = gadget::GadgetRequestHandler::new();
 

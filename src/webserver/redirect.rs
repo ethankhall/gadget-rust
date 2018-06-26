@@ -14,8 +14,8 @@ pub struct RedirectRequestHandler {
 }
 
 impl RedirectRequestHandler {
-    pub fn new(container: DataSourceContainer) -> Self {
-        return RedirectRequestHandler { datasource: Arc::new(container) }
+    pub fn new(container: Arc<DataSourceContainer>) -> Self {
+        return RedirectRequestHandler { datasource: container }
     }
 }
 

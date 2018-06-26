@@ -12,7 +12,7 @@ use super::{DataSource, DataSourceError};
 
 pub struct YamlDataSource {
     path: PathBuf,
-    current_results: Arc<RefCell<BTreeMap<String, String>>>
+    current_results: Arc<RefCell<BTreeMap<String, String>>>,
 }
 
 impl YamlDataSource {
@@ -24,19 +24,10 @@ impl YamlDataSource {
         };
     }
 
-    fn reload(&self) -> Result<(), DataSourceError>{
-        let contents = match read_file_to_string(self.path.as_path()) {
-            Ok(val) => val,
-            Err(err) => { return Err(err) }
-        };
-
-        return self.reload_from_string(contents);
-    }
-
-    fn reload_from_string(&self, contents: String) -> Result<(), DataSourceError>{
+    fn reload_from_string(&self, contents: String) -> Result<(), DataSourceError> {
         let document: YamlDatasourceDocument = match serde_yaml::from_str(&contents) {
             Ok(val) => val,
-            Err(err) => { return Err(DataSourceError::new(err)) }
+            Err(err) => { return Err(DataSourceError::new(err)); }
         };
 
         self.current_results.replace(document.definitions);
@@ -52,8 +43,8 @@ fn read_file_to_string(path: &Path) -> Result<String, DataSourceError> {
             return match file.read_to_string(&mut contents) {
                 Ok(_) => Ok(contents),
                 Err(value) => Err(DataSourceError::new(value.to_string()))
-            }
-        },
+            };
+        }
         Err(value) => Err(DataSourceError::new(value))
     };
 }
@@ -66,9 +57,18 @@ impl DataSource for YamlDataSource {
                     Some(result) => Some(format!("{}", result)),
                     None => None
                 };
-            },
+            }
             Err(_) => None
         };
+    }
+
+    fn reload(&self) -> Result<(), DataSourceError> {
+        let contents = match read_file_to_string(self.path.as_path()) {
+            Ok(val) => val,
+            Err(err) => { return Err(err); }
+        };
+
+        return self.reload_from_string(contents);
     }
 }
 
@@ -88,4 +88,12 @@ definitions:\n
     assert!(datasource.reload_from_string(String::from(sample_yaml)).is_ok());
     assert_eq!(Some(String::from("foo")), datasource.retrieve_lookup(String::from("lookup")));
     assert_eq!(Some(String::from("www.google.com")), datasource.retrieve_lookup(String::from("bank")));
+}
+
+unsafe impl Sync for YamlDataSource {
+
+}
+
+unsafe impl Send for YamlDataSource {
+
 }

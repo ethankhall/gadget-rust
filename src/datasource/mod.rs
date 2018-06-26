@@ -4,6 +4,7 @@ pub mod yaml;
 
 pub trait DataSource {
     fn retrieve_lookup(&self, name: String) -> Option<String>;
+    fn reload(&self) -> Result<(), DataSourceError>;
 }
 
 #[derive(Debug)]
@@ -24,6 +25,10 @@ pub struct DataSourceContainer {
 impl DataSource for DataSourceContainer {
     fn retrieve_lookup(&self, name: String) -> Option<String> {
         return self.data_source.retrieve_lookup(name);
+    }
+
+    fn reload(&self) -> Result<(), DataSourceError> {
+        return self.data_source.reload();
     }
 }
 
