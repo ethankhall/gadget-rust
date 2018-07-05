@@ -3,12 +3,16 @@ extern crate ansi_term;
 extern crate chrono;
 #[macro_use]
 extern crate clap;
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
 extern crate fern;
 extern crate futures;
 extern crate iron;
 #[macro_use]
 extern crate log;
 extern crate router;
+extern crate rusqlite;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_yaml;
@@ -17,8 +21,10 @@ extern crate yaml_rust;
 
 use clap::{App, AppSettings, Arg, ArgGroup, SubCommand};
 use datasource::{DataSource, DataSourceContainer};
+use datasource::sql::{DbDriver, SqlDataSource};
 use datasource::yaml::YamlDataSource;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::prelude::*;
@@ -30,6 +36,8 @@ mod webserver;
 mod logging;
 
 fn main() {
+    dotenv::dotenv().ok();
+
     let matches = App::new("gogo-gadget")
         .about("Redirect Application for Domain Redirects")
         .version(crate_version!())
@@ -66,6 +74,20 @@ fn main() {
             .arg(Arg::with_name("path")
                 .takes_value(true)
                 .help("Path to the Yaml File")))
+        .subcommand(SubCommand::with_name("sql")
+            .setting(AppSettings::ArgRequiredElseHelp)
+            .about("Uses SQLite as the data source")
+            .arg(Arg::with_name("driver")
+                .long("driver")
+                .help("The driver to use as the DB backend.")
+                .takes_value(true)
+                .number_of_values(1)
+                .required(true)
+                .possible_values(DbDriver::variants()))
+            .arg(Arg::with_name("url")
+                .takes_value(true)
+                .help("URL to the DB Server.")
+                .env("DATABASE_URL")))
         .get_matches();
 
     logging::configure_logging(
@@ -84,8 +106,20 @@ fn main() {
     let datasource = match matches.subcommand() {
         ("yaml", Some(yaml_matches)) => {
             let path = PathBuf::from(yaml_matches.value_of("path").unwrap());
-            info!("Loading YAML definition from {:#?}", path);
+            info!("Loading YAML definition from {:?}", path);
             match YamlDataSource::new(path) {
+                Ok(source) => {
+                    Ok(DataSourceContainer { data_source: Box::new(source) })
+                }
+                Err(v) => Err(v)
+            }
+        }
+        ("sql", Some(sqlite_options)) => {
+            let path = sqlite_options.value_of("url").unwrap();
+            let driver_name = sqlite_options.value_of("driver").unwrap();
+            let driver = DbDriver::from_str(driver_name).unwrap();
+            info!("Connecting to {} at {}", driver_name, path);
+            match SqlDataSource::new(path, driver) {
                 Ok(source) => {
                     Ok(DataSourceContainer { data_source: Box::new(source) })
                 }
@@ -107,8 +141,8 @@ fn run_web_server(matches: clap::ArgMatches, runtime: &mut Runtime, container: A
     let task = RefreshFuture { datasource: container.clone(), interval }
         .for_each(move |source| {
             match source.reload() {
-                Ok(()) => info!("Reloaded yaml"),
-                Err(err) => warn!("Unable to reload YAML because {:?}", err)
+                Ok(()) => info!("Reloaded datasource"),
+                Err(err) => warn!("Unable to reload datasource due to {:?}", err)
             };
             Ok(())
         })

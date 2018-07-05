@@ -1,10 +1,13 @@
-use std::marker::{Sync, Send};
+use std::marker::{Send, Sync};
 
 pub mod yaml;
+pub mod sql;
+mod memory;
 
 pub trait DataSource {
     fn retrieve_lookup(&self, name: String) -> Option<String>;
     fn reload(&self) -> Result<(), DataSourceError>;
+    fn add_new_redirect(&self, alias: String, redirect: String) -> Result<(), DataSourceError>;
 }
 
 #[derive(Debug)]
@@ -29,6 +32,10 @@ impl DataSource for DataSourceContainer {
 
     fn reload(&self) -> Result<(), DataSourceError> {
         return self.data_source.reload();
+    }
+
+    fn add_new_redirect(&self, alias: String, redirect: String) -> Result<(), DataSourceError> {
+        return self.data_source.add_new_redirect(alias, redirect);
     }
 }
 

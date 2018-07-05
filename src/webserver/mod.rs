@@ -29,6 +29,6 @@ pub fn exec_webserver(listen: &str, port: u32, datasource: Arc<DataSourceContain
     router.get("/gadget", gadget_handler, "gadget_base");
     router.get("/:redirect", redirect_handler, "redirect");
     let listen_addr = format!("{listen}:{port}", port = port, listen = listen);
-    info!("Listening on address {}" listen_addr);
+    info!("Listening on address {}", listen_addr);
     Iron::new(router).http(listen_addr).unwrap();
 }
