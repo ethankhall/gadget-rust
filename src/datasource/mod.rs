@@ -1,18 +1,18 @@
 use std::marker::{Send, Sync};
 
 pub mod yaml;
-pub mod sql;
+pub mod mongo;
 mod memory;
 
 pub trait DataSource {
     fn retrieve_lookup(&self, name: String) -> Option<String>;
     fn reload(&self) -> Result<(), DataSourceError>;
-    fn add_new_redirect(&self, alias: String, redirect: String) -> Result<(), DataSourceError>;
+    fn add_new_redirect(&self, alias: &str, redirect: &str) -> Result<(), DataSourceError>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DataSourceError {
-    message: String
+    pub message: String
 }
 
 impl DataSourceError {
@@ -34,7 +34,7 @@ impl DataSource for DataSourceContainer {
         return self.data_source.reload();
     }
 
-    fn add_new_redirect(&self, alias: String, redirect: String) -> Result<(), DataSourceError> {
+    fn add_new_redirect(&self, alias: &str, redirect: &str) -> Result<(), DataSourceError> {
         return self.data_source.add_new_redirect(alias, redirect);
     }
 }

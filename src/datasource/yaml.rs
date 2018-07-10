@@ -60,7 +60,7 @@ impl DataSource for YamlDataSource {
         return self.reload_from_string(contents);
     }
 
-    fn add_new_redirect(&self, _alias: String, _redirect: String) -> Result<(), DataSourceError> {
+    fn add_new_redirect(&self, _alias: &str, _redirect: &str) -> Result<(), DataSourceError> {
         return Err(DataSourceError::new("YAML backend doesn't support writing."));
     }
 }
@@ -81,4 +81,10 @@ definitions:\n
     assert!(datasource.reload_from_string(String::from(sample_yaml)).is_ok());
     assert_eq!(Some(String::from("foo")), datasource.retrieve_lookup(String::from("lookup")));
     assert_eq!(Some(String::from("www.google.com")), datasource.retrieve_lookup(String::from("bank")));
+}
+
+#[test]
+fn will_report_error_on_write() {
+    let datasource = YamlDataSource { path: PathBuf::from("/tmp/yaml"), current_results: InternalDataStore::new() };
+    assert_eq!(Err(DataSourceError::new("YAML backend doesn't support writing.")), datasource.add_new_redirect("", ""));
 }

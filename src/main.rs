@@ -3,16 +3,18 @@ extern crate ansi_term;
 extern crate chrono;
 #[macro_use]
 extern crate clap;
-#[macro_use]
-extern crate diesel;
 extern crate dotenv;
+#[macro_use]
+extern crate bson;
+extern crate mongodb;
+#[macro_use]
+extern crate json;
 extern crate fern;
 extern crate futures;
 extern crate iron;
 #[macro_use]
 extern crate log;
 extern crate router;
-extern crate rusqlite;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_yaml;
@@ -21,10 +23,9 @@ extern crate yaml_rust;
 
 use clap::{App, AppSettings, Arg, ArgGroup, SubCommand};
 use datasource::{DataSource, DataSourceContainer};
-use datasource::sql::{DbDriver, SqlDataSource};
+use datasource::mongo::MongoDataSource;
 use datasource::yaml::YamlDataSource;
 use std::path::PathBuf;
-use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::prelude::*;
@@ -74,20 +75,13 @@ fn main() {
             .arg(Arg::with_name("path")
                 .takes_value(true)
                 .help("Path to the Yaml File")))
-        .subcommand(SubCommand::with_name("sql")
+        .subcommand(SubCommand::with_name("mongo")
             .setting(AppSettings::ArgRequiredElseHelp)
-            .about("Uses SQLite as the data source")
-            .arg(Arg::with_name("driver")
-                .long("driver")
-                .help("The driver to use as the DB backend.")
+            .about("Uses mongo as the data source")
+            .arg(Arg::with_name("uri")
                 .takes_value(true)
-                .number_of_values(1)
-                .required(true)
-                .possible_values(DbDriver::variants()))
-            .arg(Arg::with_name("url")
-                .takes_value(true)
-                .help("URL to the DB Server.")
-                .env("DATABASE_URL")))
+                .help("URI to the Mongo Server. Example: mongodb://localhost:27017,localhost:27018/")
+                .env("MONGO_URI")))
         .get_matches();
 
     logging::configure_logging(
@@ -114,12 +108,9 @@ fn main() {
                 Err(v) => Err(v)
             }
         }
-        ("sql", Some(sqlite_options)) => {
-            let path = sqlite_options.value_of("url").unwrap();
-            let driver_name = sqlite_options.value_of("driver").unwrap();
-            let driver = DbDriver::from_str(driver_name).unwrap();
-            info!("Connecting to {} at {}", driver_name, path);
-            match SqlDataSource::new(path, driver) {
+        ("mongo", Some(etcd_options)) => {
+            let uri = etcd_options.value_of("uri").unwrap();
+            match MongoDataSource::new(uri) {
                 Ok(source) => {
                     Ok(DataSourceContainer { data_source: Box::new(source) })
                 }
