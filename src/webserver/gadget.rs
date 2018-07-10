@@ -55,16 +55,14 @@ impl Handler for GadgetPostRequestHandler {
             }
         };
 
-        let alias = match buffer["alias"] {
-            JsonValue::String(ref alias) => alias.clone(),
-            JsonValue::Null => return Ok(make_missing_field("alias")),
-            _ => return Ok(make_invalid_type("alias")),
+        let alias = match extract_value(&buffer, "alias") {
+            Ok(value) => value,
+            Err(resp) => return Ok(resp)
         };
-
-        let redirect = match buffer["redirect"] {
-            JsonValue::String(ref redirect) => redirect.clone(),
-            JsonValue::Null => return Ok(make_missing_field("redirect")),
-            _ => return Ok(make_invalid_type("redirect")),
+        
+        let redirect = match extract_value(&buffer, "redirect") {
+            Ok(value) => value,
+            Err(resp) => return Ok(resp)
         };
 
         return match self.datasource.add_new_redirect(&alias, &redirect) {
@@ -80,20 +78,22 @@ impl Handler for GadgetPostRequestHandler {
     }
 }
 
+fn extract_value(value: &JsonValue, field: &str) -> Result<String, Response> {
+    if value[field].is_string() {
+        return Ok(value[field].as_str().unwrap().to_string())
+    }
 
-fn make_missing_field(name: &str) -> Response {
-    let response_json = object! {
-"error" => "Missing Field",
-"message" => format ! ("The filed that was missing was {}", name)
-}.dump();
-    return Response::with((status::BadRequest, response_json));
-}
-
-
-fn make_invalid_type(name: &str) -> Response {
-    let response_json = object! {
-"error" => "Invalid Type",
-"message" => format ! ("The field {} was supposed to be a string", name)
-}.dump();
-    return Response::with((status::BadRequest, response_json));
+    return if value[field].is_null() {
+        let json_body = object! { 
+            "error" => "Missing Field",
+            "message" => format!("The required field {} was missing.", field)
+        }.dump();
+        Err(Response::with((status::InternalServerError, json_body)))
+    } else {
+        let json_body = object! { 
+            "error" => "Invalid Type",
+            "message" => format!("The field {} was supposed to be a string instead of {:?}", field, value[field])
+        }.dump();
+        Err(Response::with((status::BadRequest, json_body)))
+    };
 }

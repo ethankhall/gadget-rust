@@ -31,7 +31,7 @@ impl Handler for RedirectRequestHandler {
             Some(redirect) => {
                 debug!("Found lookup ({:?}) to map to {}", path.clone(), redirect);
                 let url = Url::parse(&redirect).unwrap();
-                Ok(Response::with((status::Found, Redirect(url))))
+                Ok(Response::with((status::TemporaryRedirect, Redirect(url))))
             },
             None => Err(IronError::new(StringError(format!("Unknown redirect `{}`", path)), status::BadRequest))
         };

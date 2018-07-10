@@ -26,7 +26,6 @@ pub fn exec_webserver(listen: &str, port: u32, datasource: Arc<DataSourceContain
     let gadget_get_handler = gadget::GadgetGetRequestHandler::new();
     let gadget_post_handler = gadget::GadgetPostRequestHandler::new(datasource);
 
-
     let mut router = Router::new();
     router.get("/gadget", gadget_get_handler, "gadget_base");
     router.post("/gadget/route", gadget_post_handler, "gadget_post");

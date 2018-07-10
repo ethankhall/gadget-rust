@@ -65,7 +65,9 @@ impl DataSource for MongoDataSource {
         let coll: Collection= self.client.db("gogo-gadget").collection("redirects");
 
         return match coll.insert_one(doc!{ "alias": alias, "redirect": redirect }, None) {
-            Ok(_) => Ok(()),
+            Ok(_) => {
+                self.reload()
+            },
             Err(err) => Err(DataSourceError::new(err))
         };
     }
