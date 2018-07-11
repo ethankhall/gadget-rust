@@ -7,7 +7,6 @@ use iron::Handler;
 use iron::modifiers::Redirect;
 
 use super::super::datasource::{DataSource, DataSourceContainer};
-use super::StringError;
 
 pub struct RedirectRequestHandler {
     datasource: Arc<DataSourceContainer>
@@ -33,7 +32,7 @@ impl Handler for RedirectRequestHandler {
                 let url = Url::parse(&redirect).unwrap();
                 Ok(Response::with((status::TemporaryRedirect, Redirect(url))))
             },
-            None => Err(IronError::new(StringError(format!("Unknown redirect `{}`", path)), status::BadRequest))
+            None => Ok(Response::with(status::NotFound))
         };
     }
 }

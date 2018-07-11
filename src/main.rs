@@ -20,6 +20,8 @@ extern crate serde_derive;
 extern crate serde_yaml;
 extern crate tokio;
 extern crate yaml_rust;
+#[macro_use]
+extern crate rust_embed;
 
 use clap::{App, AppSettings, Arg, ArgGroup, SubCommand};
 use datasource::{DataSource, DataSourceContainer};
