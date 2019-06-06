@@ -1,26 +1,19 @@
 [package]
-name = "gogo"
+name = "gadget"
 version = "0.1.1"
 authors = ["ethan"]
 
 [dependencies]
-yaml-rust = "0.4.0"
-serde_yaml = "0.7"
+serde_yaml = "0.*"
 serde_derive = "1.0"
 serde = "1.0"
-router = "0.6"
-iron = "0.6"
-clap = "2.31.2"
-log = "0.4.1"
-termcolor = "0.3"
-fern = { version = "0.5", features = ["colored"] }
-colored = "1.6"
+clap = { version = "2.32", features = ["yaml"] }
+hyper = "0.12"
+dotenv = "0.14"
+kopy-common-lib = { git = "https://github.com/ethankhall/rust-shared.git", rev = "84a38d080b5a066c7443e6a46e043708d2a53f39" }
+log = "*"
+hotwatch = "0.4.1"
 chrono = "0.4"
-ansi_term = "0.11"
-tokio = "0.1"
-futures = "0.1.21"
-dotenv = "0.13.0"
-json = "*"
-mongodb = "0.3.9"
-bson = "0.12.1"
-rust-embed = "3.0.0"
+
+[dev-dependencies]
+simple_logger = "1.2.0"

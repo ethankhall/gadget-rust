@@ -1,170 +1,51 @@
-#![feature(extern_prelude)]
-extern crate ansi_term;
-extern crate chrono;
-#[macro_use]
-extern crate clap;
-extern crate dotenv;
-#[macro_use]
-extern crate bson;
-extern crate mongodb;
-#[macro_use]
-extern crate json;
-extern crate fern;
-extern crate futures;
-extern crate iron;
-#[macro_use]
-extern crate log;
-extern crate router;
-#[macro_use]
-extern crate serde_derive;
+extern crate hyper;
+#[macro_use] extern crate clap;
+#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate kopy_common_lib;
+#[macro_use] extern crate log;
+extern crate serde;
 extern crate serde_yaml;
-extern crate tokio;
-extern crate yaml_rust;
-#[macro_use]
-extern crate rust_embed;
+extern crate hotwatch;
+extern crate chrono;
 
-use clap::{App, AppSettings, Arg, ArgGroup, SubCommand};
-use datasource::{DataSource, DataSourceContainer};
-use datasource::mongo::MongoDataSource;
-use datasource::yaml::YamlDataSource;
-use std::path::PathBuf;
-use std::sync::Arc;
-use std::time::{Duration, Instant};
-use tokio::prelude::*;
-use tokio::runtime::Runtime;
-use tokio::timer::*;
+#[cfg(test)]
+extern crate simple_logger;
 
-mod datasource;
+mod config;
 mod webserver;
-mod logging;
+
+use std::path::PathBuf;
+
+use kopy_common_lib::configure_logging;
+use clap::{App, ArgMatches};
+
+use config::*;
+
+fn run(matches: &ArgMatches) {
+    let path = PathBuf::from(matches.value_of("CONFIG").unwrap());
+    let bind_address = matches.value_of("bind").unwrap();
+    debug!("Bind Address: {}", bind_address);
+    let bind_address = bind_address.parse();
+    debug!("Bind Address: {:?}", bind_address);
+    webserver::run_webserver(bind_address.expect("Bind address invalid"), path);
+}
 
 fn main() {
     dotenv::dotenv().ok();
 
-    let matches = App::new("gogo-gadget")
-        .about("Redirect Application for Domain Redirects")
-        .version(crate_version!())
-        .author(crate_authors!())
-        .setting(AppSettings::SubcommandRequiredElseHelp)
-        .arg(Arg::with_name("debug")
-            .long("debug")
-            .short("d")
-            .multiple(true)
-            .help("Turn debugging information on.")
-            .global(true)
-            .conflicts_with("quite"))
-        .arg(Arg::with_name("quite")
-            .long("quite")
-            .short("q")
-            .help("Only error output will be displayed.")
-            .global(true)
-            .conflicts_with("debug"))
-        .arg(Arg::with_name("listen")
-            .long("listen")
-            .help("The address to accept requests on.")
-            .default_value("localhost"))
-        .arg(Arg::with_name("port")
-            .long("port")
-            .help("The port to accept requests on.")
-            .default_value("3000"))
-        .group(ArgGroup::with_name("logging")
-            .args(&["debug", "quite"]))
-        .group(ArgGroup::with_name("webserver")
-            .args(&["listen", "port"]))
-        .subcommand(SubCommand::with_name("yaml")
-            .setting(AppSettings::ArgRequiredElseHelp)
-            .about("Uses YAML as the data source")
-            .arg(Arg::with_name("path")
-                .takes_value(true)
-                .help("Path to the Yaml File")))
-        .subcommand(SubCommand::with_name("mongo")
-            .setting(AppSettings::ArgRequiredElseHelp)
-            .about("Uses mongo as the data source")
-            .arg(Arg::with_name("uri")
-                .takes_value(true)
-                .help("URI to the Mongo Server. Example: mongodb://localhost:27017,localhost:27018/")
-                .env("MONGO_URI")))
+    let yml = load_yaml!("cli.yaml");
+    let matches = App::from_yaml(yml)
+        .version(&*format!("v{}", crate_version!()))
         .get_matches();
 
-    logging::configure_logging(
+    configure_logging(
         matches.occurrences_of("debug") as i32,
+        matches.is_present("warn"),
         matches.is_present("quite"),
     );
 
-    let mut runtime = match Runtime::new() {
-        Ok(x) => x,
-        Err(err) => {
-            error!("Unable to start background thread because {:?}. Dieing. Goodbye!", err);
-            panic!("Unable to start background thread.")
-        }
+    match matches.subcommand() {
+        ("run", Some(command_matches)) => run(command_matches),
+        _ => unimplemented!()
     };
-
-    let datasource = match matches.subcommand() {
-        ("yaml", Some(yaml_matches)) => {
-            let path = PathBuf::from(yaml_matches.value_of("path").unwrap());
-            info!("Loading YAML definition from {:?}", path);
-            match YamlDataSource::new(path) {
-                Ok(source) => {
-                    Ok(DataSourceContainer { data_source: Box::new(source) })
-                }
-                Err(v) => Err(v)
-            }
-        }
-        ("mongo", Some(etcd_options)) => {
-            let uri = etcd_options.value_of("uri").unwrap();
-            match MongoDataSource::new(uri) {
-                Ok(source) => {
-                    Ok(DataSourceContainer { data_source: Box::new(source) })
-                }
-                Err(v) => Err(v)
-            }
-        }
-        _ => panic!(), // Assuming you've listed all direct children above, this is unreachable
-    };
-
-    match datasource {
-        Err(e) => panic!("Unable to get datasource! `{:?}`", e),
-        Ok(source) => run_web_server(matches, &mut runtime, Arc::new(source))
-    };
-}
-
-fn run_web_server(matches: clap::ArgMatches, runtime: &mut Runtime, container: Arc<DataSourceContainer>) {
-    let when = Instant::now() + Duration::from_millis(300);
-    let interval = Interval::new(when, Duration::from_secs(60));
-    let task = RefreshFuture { datasource: container.clone(), interval }
-        .for_each(move |source| {
-            match source.reload() {
-                Ok(()) => info!("Reloaded datasource"),
-                Err(err) => warn!("Unable to reload datasource due to {:?}", err)
-            };
-            Ok(())
-        })
-        .map_err(|_| error!("Error updating"));
-
-    runtime.spawn(task);
-
-    let listen = matches.value_of("listen")
-        .expect("The value will always be set (because of default)");
-
-    let port = value_t!(matches, "port", u32).unwrap();
-
-    webserver::exec_webserver(listen, port, container.clone())
-}
-
-struct RefreshFuture {
-    datasource: Arc<DataSourceContainer>,
-    interval: Interval,
-}
-
-impl Stream for RefreshFuture {
-    type Item = Arc<DataSourceContainer>;
-    type Error = tokio::timer::Error;
-
-    fn poll(&mut self) -> Result<Async<Option<<Self as Stream>::Item>>, <Self as Stream>::Error> {
-        return match self.interval.poll() {
-            Ok(Async::Ready(_)) => Ok(Async::Ready(Some(self.datasource.clone()))),
-            Ok(Async::NotReady) => Ok(Async::NotReady),
-            Err(x) => Err(x)
-        };
-    }
 }
