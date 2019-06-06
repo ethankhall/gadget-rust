@@ -1,3 +1,8 @@
-definitions:
-    lookup: foo
-    bank: https://www.google.com
+missing_redirect_destination: http://www.google.com
+redirects:
+    - alias: urn:gadget:alias:google
+      destination: http://google.com
+    - alias: urn:gadget:alias:vaca/truk
+      destination: https://www.flickr.com/photos/ethankhall/albums/72157705057427262
+    - alias: urn:gadget:direct:yahoo
+      destination: http://yahoo.com
