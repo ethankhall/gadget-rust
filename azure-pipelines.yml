@@ -1,0 +1,50 @@
+trigger:
+  branches:
+    include:
+      - master
+  paths:
+    exclude:
+      - README.md
+      - docs
+      - version.properties
+      - Cargo.toml
+jobs:
+  - job: Linux_Build
+    pool:
+      vmImage: 'ubuntu-16.04'
+    steps:
+      - script: |
+          set -e
+          mkdir -p target/x86_64-unknown-linux-musl/release/gadget
+          docker build -t musl-builder -f ci/musl-builder.Dockerfile .
+          docker run --name musl-build musl-builder
+          docker cp musl-build:/home/rust/src/target/x86_64-unknown-linux-musl/release/gadget target/x86_64-unknown-linux-musl/release/gadget
+          docker rm musl-build
+      - task: PublishBuildArtifacts@1
+        displayName: "Publish Artifact: Release Build"
+        inputs:
+          PathtoPublish: ./target/x86_64-unknown-linux-musl/release/gadget
+          ArtifactName: gadget-linux
+          ArtifactType: Container
+  
+  - job: Release
+    pool:
+      vmImage: "ubuntu-16.04"
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    dependsOn:
+      - Linux_Build
+    steps:
+      - task: DownloadBuildArtifacts@0
+        inputs:
+          downloadType: specific
+          downloadPath: $(System.ArtifactsDirectory)/artifacts
+      - script: |
+          set -e
+          mkdir ~/bin || true
+          curl --location https://github.com/ethankhall/crom/releases/download/v0.1.14/crom-linux-musl.tar.gz | tar -xvz  -C ~/bin
+          chmod +x ~/bin/crom
+          sudo apt-get install -y tree
+          tree $SYSTEM_ARTIFACTSDIRECTORY
+          git status
+          ~/bin/crom tag-version --source local,github --ignore-changes
+          ~/bin/crom upload-artifacts --root-artifact-path=$SYSTEM_ARTIFACTSDIRECTORY linux
