@@ -6,5 +6,6 @@ RUN chmod +x ~/bin/crom
 ADD . ./
 RUN sudo chown -R rust:rust .
 RUN ~/bin/crom update-version --pre-release release
+RUN cargo --version
 
 CMD cargo test && cargo build --release
