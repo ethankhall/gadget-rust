@@ -33,7 +33,8 @@ jobs:
           echo $GCP_IMAGE_TOKEN | base64 -d  > ${HOME}/gcloud-service-key.json
           gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
           gcloud --quiet config set project ${GCP_IMAGE_PROJECT}
-          gcloud auth configure-docker
+          gcloud --quiet auth configure-docker
+
           docker tag gadget-server us.gcr.io/${GCP_IMAGE_PROJECT}/gadget-server:$VERSION
           docker push us.gcr.io/${GCP_IMAGE_PROJECT}/gadget-server:$VERSION
 
