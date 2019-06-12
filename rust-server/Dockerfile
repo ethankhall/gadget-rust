@@ -18,6 +18,7 @@ COPY ./src ./src
 # build for release
 RUN rm ./target/release/deps/gadget_server*
 RUN cargo build --release
+RUN cargo test
 
 # our final base
 FROM rust:1.23

@@ -15,11 +15,8 @@ jobs:
     steps:
       - script: |
           set -e
-          mkdir -p target/x86_64-unknown-linux-musl/release/gadget
-          docker build -t musl-builder -f ci/musl-builder.Dockerfile .
-          docker run --name musl-build musl-builder
-          docker cp musl-build:/home/rust/src/target/x86_64-unknown-linux-musl/release/gadget target/x86_64-unknown-linux-musl/release/gadget
-          docker rm musl-build
+          docker build -t gadget-server .\rust-server\
+          docker build -t gadget-ui .\ui\
       - task: PublishBuildArtifacts@1
         displayName: "Publish Artifact: Release Build"
         inputs:
