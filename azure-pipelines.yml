@@ -16,32 +16,27 @@ jobs:
       - script: |
           set -e
           docker build -t gadget-server rust-server
-          docker build -t gadget-ui ui
-      - task: PublishBuildArtifacts@1
-        displayName: "Publish Artifact: Release Build"
-        inputs:
-          PathtoPublish: ./target/x86_64-unknown-linux-musl/release/gadget
-          ArtifactName: gadget-linux
-          ArtifactType: Container
-  
-  - job: Release
-    pool:
-      vmImage: "ubuntu-16.04"
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
-    dependsOn:
-      - Linux_Build
-    steps:
-      - task: DownloadBuildArtifacts@0
-        inputs:
-          downloadType: specific
-          downloadPath: $(System.ArtifactsDirectory)/artifacts
+          docker build -t gadget-local-ui ui
       - script: |
           set -e
           mkdir ~/bin || true
-          curl --location https://github.com/ethankhall/crom/releases/download/v0.1.14/crom-linux-musl.tar.gz | tar -xvz  -C ~/bin
+          curl --location https://github.com/ethankhall/crom/releases/download/v0.2.2/crom-linux-musl.tar.gz | tar -xvz  -C ~/bin
           chmod +x ~/bin/crom
-          sudo apt-get install -y tree
-          tree $SYSTEM_ARTIFACTSDIRECTORY
-          git status
           ~/bin/crom tag-version --source local,github --ignore-changes
-          ~/bin/crom upload-artifacts --root-artifact-path=$SYSTEM_ARTIFACTSDIRECTORY linux
+
+          VERSION=$(~/bin/crom get current-version --no-snapshot)
+
+          export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
+          echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+          sudo apt-get update && sudo apt-get install google-cloud-sdk
+          echo $GCP_IMAGE_TOKEN | base64 -d  > ${HOME}/gcloud-service-key.json
+          gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+          gcloud --quiet config set project ${GCP_IMAGE_PROJECT}
+          gcloud auth configure-docker
+          docker tag gadget-server us.gcr.io/${GCP_IMAGE_PROJECT}/gadget-server:$VERSION
+          docker push us.gcr.io/${GCP_IMAGE_PROJECT}/gadget-server:$VERSION
+
+          docker tag gadget-local-ui us.gcr.io/${GCP_IMAGE_PROJECT}/gadget-local-ui:$VERSION
+          docker push us.gcr.io/${GCP_IMAGE_PROJECT}/gadget-local-ui:$VERSION
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))

@@ -1,8 +1,8 @@
 pattern = 'v0.2.%d'
-types = ["Cargo"]
 message-template = "Created {version} for release."
 
-[artifact.linux]
-paths = {gadget = "artifacts/gadget-linux/gadget"}
-compress = { name = "gadget-linux-musl.tar.gz", format = "tgz" }
-target = "GitHub"
+[cargo]
+path = "rust-server"
+
+[npm]
+path = "ui"
