@@ -1,7 +1,8 @@
 [package]
-name = "gadget"
-version = "0.1.1"
-authors = ["ethan"]
+name = "gadget-server"
+version = "99.9.999-SNAPSHOT"
+authors = ["Ethan Hall <ethankhall@hall.sh>"]
+edition = "2018"
 
 [dependencies]
 serde_yaml = "0.*"

@@ -1,0 +1,8 @@
+pattern = 'v0.2.%d'
+message-template = "Created {version} for release."
+
+[cargo]
+path = "rust-server"
+
+[npm]
+path = "ui"

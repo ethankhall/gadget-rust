@@ -32,17 +32,19 @@ impl CompiledConfigs {
         }
     }
 
-    pub fn find_redirect(&self, path: &str) -> String {
-        let path = &path.to_lowercase();
+    pub fn find_redirect(&self, url: &str) -> String {
+        let url = url.replace("%20", " ");
+        let split_path: Vec<_> = url.split(" ").collect();
+        let path = split_path.first().unwrap();
         if let Some(dest) = self.direct_redirects.iter().find(|redirect| redirect.matches(path)) {
-            return dest.get_destination(&path);
+            return dest.get_destination(&url);
         }
 
         if let Some(dest) = self.alias_redirects.iter().find(|redirect| redirect.matches(path)) {
-            return dest.get_destination(&path);
+            return dest.get_destination(&url);
         }
 
-        self.default_redirect.get_destination(&path)
+        self.default_redirect.get_destination(&url)
     }
 }
 

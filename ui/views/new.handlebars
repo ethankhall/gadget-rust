@@ -1,0 +1,30 @@
+<form action="/new" method="POST">
+        <div class="form-group">
+            <label for="alias">Alias</label>
+            <input type="text" class="form-control" id="alias" name="alias" placeholder="jira" required>
+        </div>
+        <br />
+
+        <span>Redirect Type</span>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" id="redirectTypeAlias" name="redirectType" value="alias" checked>
+            <label class="form-check-label" for="redirectTypeAlias">
+                Alias - Normal Usage
+            </label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" id="redirectTypeDirect"name="redirectType"  value="direct">
+            <label class="form-check-label" for="redirectTypeDirect">
+                Direct - A raw replacement, used when indexing into another system
+            </label>
+        </div>
+        <br />
+
+        <div class="form-group">
+            <label for="destination">Destination</label>
+            <input type="text" class="form-control" id="destination" name="destination" placeholder="http://example.com/{some/path/$1}" required>
+        </div>
+    <a href="/"><button type="button" class="btn btn-default">Cancel</button></a>
+    <span id= 'deleteButton'></span>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>

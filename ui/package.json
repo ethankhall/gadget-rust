@@ -1,0 +1,18 @@
+{
+  "name": "gadget-local-ui",
+  "version": "99.9.999-SNAPSHOT",
+  "description": "Node.js on Docker",
+  "author": "First Last <first.last@example.com>",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "express-handlebars": "^3.1.0",
+    "js-yaml": "^3.13.1",
+    "mustache": "^3.0.1",
+    "mustache-express": "^1.2.8"
+  }
+}
