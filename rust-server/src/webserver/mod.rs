@@ -62,5 +62,12 @@ pub fn run_webserver(bind_addr: SocketAddr, config_path: PathBuf) {
 
     println!("Listening on http://{}", bind_addr);
 
-    rt::run(server);
+    std::thread::spawn(move || {
+        rt::run(server);
+        println!("Exiting server")
+    });
+
+    loop {
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    }
 }

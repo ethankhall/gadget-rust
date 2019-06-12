@@ -6,6 +6,8 @@ const fs = require('fs');
 const yaml = require('js-yaml');
 var bodyParser = require('body-parser');
 
+const pathToYaml = process.argv[2]
+
 // App
 const app = express();
 
@@ -29,7 +31,7 @@ function makeid(length) {
 }
 
 app.get('/', function (req, res) {
-    var doc = yaml.safeLoad(fs.readFileSync('test1.yaml', 'utf8'));
+    var doc = yaml.safeLoad(fs.readFileSync(pathToYaml, 'utf8'));
     var redirects = [];
     for (var redirect of doc['redirects']) {
       var new_redirect = { 'id': redirect['id'], 'destination': redirect['destination']};
@@ -43,7 +45,7 @@ app.get('/', function (req, res) {
 });
 
 app.get("/delete/:id", function(req, res){
-  var doc = yaml.safeLoad(fs.readFileSync('test1.yaml', 'utf8'));
+  var doc = yaml.safeLoad(fs.readFileSync(pathToYaml, 'utf8'));
 
   var index = 0;
   for (var redirect of doc['redirects']) {
@@ -54,7 +56,7 @@ app.get("/delete/:id", function(req, res){
     index++;
   }
 
-  fs.writeFileSync('test1.yaml', yaml.dump(doc));
+  fs.writeFileSync(pathToYaml, yaml.dump(doc));
 
   res.redirect("/");
 });
@@ -64,15 +66,15 @@ app.get("/new", function (req, res) {
 });
 
 app.post("/new", function (req, res) {
-  var doc = yaml.safeLoad(fs.readFileSync('test1.yaml', 'utf8'));
+  var doc = yaml.safeLoad(fs.readFileSync(pathToYaml, 'utf8'));
 
   doc['redirects'].push({
-      'alias': 'url:gadget:' + req.body.redirectType + ':' + req.body.alias, 
+      'alias': 'urn:gadget:' + req.body.redirectType + ':' + req.body.alias, 
       'destination': req.body.destination, 
       'id': makeid(10)
   });
 
-  fs.writeFileSync('test1.yaml', yaml.dump(doc));
+  fs.writeFileSync(pathToYaml, yaml.dump(doc));
   res.redirect("/");
 });
 

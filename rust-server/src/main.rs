@@ -19,8 +19,6 @@ use std::path::PathBuf;
 use kopy_common_lib::configure_logging;
 use clap::{App, ArgMatches};
 
-use config::*;
-
 fn run(matches: &ArgMatches) {
     let path = PathBuf::from(matches.value_of("CONFIG").unwrap());
     let bind_address = matches.value_of("bind").unwrap();

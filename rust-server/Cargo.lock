@@ -312,7 +312,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "gadget"
+name = "gadget-server"
 version = "99.9.999-SNAPSHOT"
 dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",

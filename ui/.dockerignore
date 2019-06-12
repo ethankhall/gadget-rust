@@ -1,4 +1,4 @@
-target
-node_modules
+test1.yaml
+node-modules
 npm-debug.log
 node_modules

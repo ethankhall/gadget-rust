@@ -1,5 +1,5 @@
 [package]
-name = "gadget"
+name = "gadget-server"
 version = "99.9.999-SNAPSHOT"
 authors = ["Ethan Hall <ethankhall@hall.sh>"]
 edition = "2018"
