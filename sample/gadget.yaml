@@ -1,4 +1,4 @@
-missing_redirect_destination: 'http://localhost:8081'
+missing_redirect_destination: 'http://localhost:8001'
 redirects:
   - alias: 'urn:gadget:alias:vaca/truk'
     destination: 'https://www.flickr.com/photos/ethankhall/albums/72157705057427262'
@@ -7,5 +7,5 @@ redirects:
     destination: 'https://sprout.atlassian.net/secure/Dashboard.jspa'
     id: du1vfrquin
   - alias: 'urn:gadget:alias:nsqadmin'
-    destination: "https://nsqadmin-aws.int.sproutsocial.com/{topics/$1}\t"
+    destination: "https://nsqadmin-aws.int.sproutsocial.com/{topics/$1}"
     id: 3f00kxg7lg

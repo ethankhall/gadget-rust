@@ -1,0 +1,18 @@
+version: '3'
+services:
+  gadget-server:
+    build:
+      context: ./rust-server
+    command: ./gadget-server run --bind 0.0.0.0:8080 /srv/data/gadget.yaml
+    ports:
+      - "8000:8080"
+    volumes:
+      - ./sample/:/srv/data/
+  gadget-ui:
+    build:
+      context: ./ui
+    command: npm start /srv/data/gadget.yaml
+    ports:
+      - "8001:8080"
+    volumes:
+      - ./sample/:/srv/data/

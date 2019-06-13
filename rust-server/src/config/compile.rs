@@ -137,7 +137,7 @@ impl Redirect for DirectRedirect {
     }
 
     fn matches(&self, alias: &str) -> bool {
-        self.alias == alias.to_lowercase()
+        self.alias.starts_with(&alias.to_lowercase())
     }
 }
 
@@ -221,7 +221,7 @@ impl Redirect for AliasRedirect {
     }
 
     fn matches(&self, alias: &str) -> bool {
-        self.alias.starts_with(&alias.to_lowercase())
+        self.alias == alias.to_lowercase()
     }
 }
 
