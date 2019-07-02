@@ -11,7 +11,7 @@ use chrono::prelude::*;
 use crate::config::{*, compile::*};
 
 pub fn run_webserver(bind_addr: SocketAddr, config_path: PathBuf) {
-    let config_root = match read_config(config_path.clone()) {
+    let config_root: ConfigRoot = match read_config(config_path.clone()) {
         Ok(config_root) => config_root,
         Err(err) => panic!("{}", err)
     };
@@ -28,7 +28,7 @@ pub fn run_webserver(bind_addr: SocketAddr, config_path: PathBuf) {
         hotwatch.watch(config_path.clone(), move |event: Event| {
             let config: Arc<RwLock<CompiledConfigs>> = hotwatch_config.clone();
             if let Event::Write(path) = event {
-                match read_config(path) {
+                match read_config::<ConfigRoot>(path) {
                     Ok(config_root) => {
                         *config.write().unwrap() = config_root.compile();
                         info!("Configs were reloaded at {}.", Local::now())

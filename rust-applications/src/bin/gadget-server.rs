@@ -1,18 +1,14 @@
 extern crate hyper;
 #[macro_use] extern crate clap;
-#[macro_use] extern crate serde_derive;
-#[macro_use] extern crate kopy_common_lib;
 #[macro_use] extern crate log;
 extern crate serde;
 extern crate serde_yaml;
 extern crate hotwatch;
 extern crate chrono;
+extern crate gadget;
 
 #[cfg(test)]
 extern crate simple_logger;
-
-mod config;
-mod webserver;
 
 use std::path::PathBuf;
 
@@ -25,13 +21,13 @@ fn run(matches: &ArgMatches) {
     debug!("Bind Address: {}", bind_address);
     let bind_address = bind_address.parse();
     debug!("Bind Address: {:?}", bind_address);
-    webserver::run_webserver(bind_address.expect("Bind address invalid"), path);
+    gadget::webserver::run_webserver(bind_address.expect("Bind address invalid"), path);
 }
 
 fn main() {
     dotenv::dotenv().ok();
 
-    let yml = load_yaml!("cli.yaml");
+    let yml = load_yaml!("server.yaml");
     let matches = App::from_yaml(yml)
         .version(&*format!("v{}", crate_version!()))
         .get_matches();

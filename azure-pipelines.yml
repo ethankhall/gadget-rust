@@ -15,7 +15,7 @@ jobs:
     steps:
       - script: |
           set -e
-          docker build -t gadget-server rust-server
+          docker build -t gadget-server rust-applications
           docker build -t gadget-local-ui ui
       - script: |
           set -e

@@ -1,0 +1,45 @@
+name: gadget-fetchd
+about: Fetch config from service
+
+settings:
+  - SubCommandRequiredElseHelp
+args:
+  - debug:
+      help: Turn debugging information on
+      short: d
+      long: debug
+      multiple: true
+      global: true
+
+  - quite:
+      help: Only error output will be displayed
+      short: q
+      long: quite
+      global: true
+
+  - warn:
+      help: Warning and Error level output will be displayed
+      short: w
+      long: warn
+      global: true
+
+subcommands:
+  - poll:
+      settings:
+        - ArgRequiredElseHelp
+      about: Polls config from server and writes out locally.
+      args:
+        - FETCH_CONFIG:
+            help: Path to fetch config file.
+            takes_value: true
+            required: true
+        - DEST:
+            help: Path to write fetched content from.
+            takes_value: true
+            required: true
+groups:
+  - logging:
+      args:
+        - debug
+        - warn
+        - quite

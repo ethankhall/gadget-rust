@@ -61,6 +61,11 @@ app.get("/delete/:id", function(req, res){
   res.redirect("/");
 });
 
+app.get("/api/body", function (req, res) {
+  var doc = fs.readFileSync(pathToYaml, 'utf8');
+  res.send(doc);
+});
+
 app.get("/new", function (req, res) {
     res.render('new');
 });

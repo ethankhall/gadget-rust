@@ -4,6 +4,10 @@ version = "99.9.999-SNAPSHOT"
 authors = ["Ethan Hall <ethankhall@hall.sh>"]
 edition = "2018"
 
+[lib]
+name = "gadget"
+path = "src/gadget/lib.rs"
+
 [dependencies]
 serde_yaml = "0.*"
 serde_derive = "1.0"
@@ -15,6 +19,7 @@ kopy-common-lib = { git = "https://github.com/ethankhall/rust-shared.git", rev =
 log = "*"
 hotwatch = "0.4.1"
 chrono = "0.4"
+reqwest = { version = "0.9", features = ["rustls-tls"] }
 
 [dev-dependencies]
 simple_logger = "1.2.0"
