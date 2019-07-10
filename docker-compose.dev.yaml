@@ -10,7 +10,7 @@ services:
       - ./sample/:/srv/data/
   gadget-ui:
     build:
-      context: ./ui
+      context: ./gadget-local-ui
     command: npm start /srv/data/gadget.yaml
     ports:
       - "8001:8080"
