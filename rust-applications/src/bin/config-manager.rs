@@ -17,13 +17,13 @@ use clap::{App, ArgMatches};
 fn run(matches: &ArgMatches) {
     let fetch_config_path = PathBuf::from(matches.value_of("FETCH_CONFIG").unwrap());
     let dest = PathBuf::from(matches.value_of("DEST").unwrap());
-    gadget::fetcher::run_fetcher(fetch_config_path, dest);
+    gadget::manager::fetch::run_fetcher(fetch_config_path, dest);
 }
 
 fn main() {
     dotenv::dotenv().ok();
 
-    let yml = load_yaml!("fetch.yaml");
+    let yml = load_yaml!("config.yaml");
     let matches = App::from_yaml(yml)
         .version(&*format!("v{}", crate_version!()))
         .get_matches();
