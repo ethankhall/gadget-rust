@@ -18,7 +18,7 @@ RUN rm -rf src/
 COPY ./src ./src
 
 # build for release
-RUN rm ./target/release/deps/gadget_server*
+RUN find  target/release/ -type f -name '*gadget*' -delete
 RUN cargo build --release
 RUN cargo test
 
