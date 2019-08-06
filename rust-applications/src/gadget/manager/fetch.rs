@@ -7,7 +7,7 @@ use crate::config::read_config;
 use crate::webserver::config::ConfigRoot;
 
 pub fn run_fetcher(config_path: PathBuf, dest: PathBuf) {
-    let config: ManagerConfig = match read_config(config_path.clone()) {
+    let config: FetcherConfig = match read_config(config_path.clone()) {
         Ok(config_root) => config_root,
         Err(err) => panic!("{}", err)
     };
@@ -15,16 +15,17 @@ pub fn run_fetcher(config_path: PathBuf, dest: PathBuf) {
     let sleep_duration = Duration::from_secs(config.frequency as u64);
 
     loop {
-        do_update(&config, &dest);
+        pull_configs(&config, &dest);
         std::thread::sleep(sleep_duration);
     }
 }
 
-fn do_update(config: &ManagerConfig, dest: &PathBuf) {
+fn pull_configs(config: &FetcherConfig, dest: &PathBuf) {
     debug!("Fetching config...");
 
-    let fetched_text = match &config.poller {
-        Poller::Web(fetcher) => fetcher.do_fetch()
+    let fetched_text = match &config.fetcher {
+        Fetcher::Web(fetcher) => fetcher.do_fetch(),
+        Fetcher::Azure(fetcher) => fetcher.do_fetch()
     };
 
     let fetched_text = match fetched_text {

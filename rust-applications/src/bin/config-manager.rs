@@ -12,13 +12,10 @@ extern crate simple_logger;
 use std::path::PathBuf;
 
 use kopy_common_lib::configure_logging;
-use clap::{App, ArgMatches};
+use clap::App;
 
-fn run(matches: &ArgMatches) {
-    let fetch_config_path = PathBuf::from(matches.value_of("FETCH_CONFIG").unwrap());
-    let dest = PathBuf::from(matches.value_of("DEST").unwrap());
-    gadget::manager::fetch::run_fetcher(fetch_config_path, dest);
-}
+use gadget::manager::fetch::run_fetcher;
+use gadget::manager::pusher::run_pusher;
 
 fn main() {
     dotenv::dotenv().ok();
@@ -34,8 +31,12 @@ fn main() {
         matches.is_present("quite"),
     );
 
+    let fetch_config_path = PathBuf::from(matches.value_of("FETCH_CONFIG").unwrap());
+    let dest = PathBuf::from(matches.value_of("DEST").unwrap());
+
     match matches.subcommand() {
-        ("poll", Some(command_matches)) => run(command_matches),
+        ("poll", Some(_)) => run_fetcher(fetch_config_path, dest),
+        ("push", Some(_)) => run_pusher(fetch_config_path, dest),
         _ => unimplemented!()
     };
 }

@@ -7,6 +7,11 @@ extern crate serde;
 extern crate serde_yaml;
 extern crate hotwatch;
 extern crate chrono;
+extern crate azure_sdk_storage_blob;
+extern crate azure_sdk_core;
+extern crate azure_sdk_storage_core;
+extern crate tokio_core;
+extern crate md5;
 
 pub mod config;
 pub mod webserver;

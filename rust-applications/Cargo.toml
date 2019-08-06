@@ -21,6 +21,11 @@ hotwatch = "0.4.1"
 chrono = "0.4"
 reqwest = { version = "0.9", features = ["rustls-tls"] }
 lazy_static = "*"
+azure_sdk_storage_blob = "*"
+azure_sdk_core = "*"
+azure_sdk_storage_core = "*"
+tokio-core = "0.1"
+md5 = "0.6"
 
 [dev-dependencies]
 simple_logger = "1.2.0"
