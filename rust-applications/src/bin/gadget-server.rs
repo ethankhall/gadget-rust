@@ -14,6 +14,7 @@ use std::path::PathBuf;
 
 use kopy_common_lib::configure_logging;
 use clap::{App, ArgMatches};
+use gadget::prelude::*;
 
 fn run(matches: &ArgMatches) {
     let path = PathBuf::from(matches.value_of("CONFIG").unwrap());
@@ -21,7 +22,7 @@ fn run(matches: &ArgMatches) {
     debug!("Bind Address: {}", bind_address);
     let bind_address = bind_address.parse();
     debug!("Bind Address: {:?}", bind_address);
-    gadget::webserver::run_webserver(bind_address.expect("Bind address invalid"), path);
+    run_webserver(bind_address.expect("Bind address invalid"), path);
 }
 
 fn main() {

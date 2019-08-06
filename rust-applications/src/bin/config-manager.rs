@@ -14,8 +14,7 @@ use std::path::PathBuf;
 use kopy_common_lib::configure_logging;
 use clap::App;
 
-use gadget::manager::fetch::run_fetcher;
-use gadget::manager::pusher::run_pusher;
+use gadget::prelude::*;
 
 fn main() {
     dotenv::dotenv().ok();

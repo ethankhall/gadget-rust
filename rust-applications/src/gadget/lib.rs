@@ -13,9 +13,10 @@ extern crate azure_sdk_storage_core;
 extern crate tokio_core;
 extern crate md5;
 
-pub mod config;
-pub mod webserver;
-pub mod manager;
+pub mod prelude;
+pub(crate) mod config;
+pub(crate) mod webserver;
+pub(crate) mod manager;
 
 lazy_static! {
     static ref HTTP_CLIENT: reqwest::Client = reqwest::Client::builder()
