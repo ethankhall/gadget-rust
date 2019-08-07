@@ -8,15 +8,17 @@ WORKDIR /gadget-server
 COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
 
+RUN mkdir src/gadget && touch src/gadget/lib.rs
+
 # this build step will cache your dependencies
 RUN cargo build --release
-RUN rm src/*.rs
+RUN rm -rf src/
 
 # copy your source tree
 COPY ./src ./src
 
 # build for release
-RUN rm ./target/release/deps/gadget_server*
+RUN find  target/release/ -type f -name '*gadget*' -delete
 RUN cargo build --release
 RUN cargo test
 

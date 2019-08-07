@@ -1,9 +1,0 @@
-ext {
-    database = [:]
-}
-
-database.driver = 'com.mysql.cj.jdbc.Driver'
-database.url = System.getenv('SPRING_DATASOURCE_URL') ?:'jdbc:mysql://localhost:3308/account_manager?verifyServerCertificate=false&useSSL=true'
-database.user = System.getenv('SPRING_DATASOURCE_USERNAME') ?: 'root'
-database.password = System.getenv('SPRING_DATASOURCE_PASSWORD') ?: 'password'
-database.name = System.getenv('SPRING_DATASOURCE_DBNAME') ?: 'account_manager'

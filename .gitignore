@@ -2,6 +2,7 @@
 **/*.rs.bk
 .idea
 node_modules
+.cache
 /target
 .idea
 

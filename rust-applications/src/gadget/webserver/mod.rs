@@ -1,3 +1,5 @@
+pub mod config;
+
 use std::path::PathBuf;
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
@@ -8,7 +10,8 @@ use hyper::service::service_fn_ok;
 use hyper::rt::{self, Future};
 use chrono::prelude::*;
 
-use crate::config::{*, compile::*};
+use crate::config::read_config;
+use self::config::*;
 
 pub fn run_webserver(bind_addr: SocketAddr, config_path: PathBuf) {
     let config_root: ConfigRoot = match read_config(config_path.clone()) {

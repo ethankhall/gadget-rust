@@ -24,7 +24,7 @@ args:
       global: true
 
 subcommands:
-  - poll:
+  - fetch:
       settings:
         - ArgRequiredElseHelp
       about: Polls config from server and writes out locally.
@@ -33,8 +33,21 @@ subcommands:
             help: Path to fetch config file.
             takes_value: true
             required: true
-        - DEST:
+        - PATH:
             help: Path to write fetched content from.
+            takes_value: true
+            required: true
+  - push:
+      settings:
+        - ArgRequiredElseHelp
+      about: Polls config from server and writes out locally.
+      args:
+        - FETCH_CONFIG:
+            help: Path to fetch config file.
+            takes_value: true
+            required: true
+        - PATH:
+            help: Path to watch and push.
             takes_value: true
             required: true
 groups:

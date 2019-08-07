@@ -2,7 +2,23 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::error::Error;
 
-use super::*;
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ConfigRoot {
+    pub missing_redirect_destination: String,
+    pub redirects: Vec<RedirectDefinition>
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RedirectDefinition {
+    pub alias: String,
+    pub destination: String
+}
+
+impl ConfigRoot {
+    pub fn compile(self) -> CompiledConfigs {
+        CompiledConfigs::new(self.missing_redirect_destination, self.redirects)
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CompiledConfigs {
