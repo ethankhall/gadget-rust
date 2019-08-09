@@ -1,0 +1,25 @@
+version: '3'
+services:
+  gadget-server:
+    image: us.gcr.io/conainter-imagers/gadget-server:v0.2.1
+    command: ./gadget-server run --bind 0.0.0.0:8080 /srv/data/gadget.yaml
+    ports:
+      - "8000:8080"
+    volumes:
+      - ./data/srv:/srv/data/
+  gadget-ui:
+    image: us.gcr.io/conainter-imagers/gadget-local-ui:v0.2.1
+    command: npm start /srv/data/gadget.yaml
+    ports:
+      - "8001:8080"
+    volumes:
+      - ./data/srv:/srv/data/
+  caddy:
+    build:
+      context: ./docker
+      dockerfile: Caddy.dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./data/caddy:/root/.caddy

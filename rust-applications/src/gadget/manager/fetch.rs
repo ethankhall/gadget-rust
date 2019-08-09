@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use super::config::*;
@@ -9,7 +9,7 @@ use crate::webserver::config::ConfigRoot;
 pub fn run_fetcher(config_path: PathBuf, dest: PathBuf) {
     let config: FetcherConfig = match read_config(config_path.clone()) {
         Ok(config_root) => config_root,
-        Err(err) => panic!("{}", err)
+        Err(err) => panic!("{}", err),
     };
 
     let sleep_duration = Duration::from_secs(config.frequency as u64);
@@ -25,12 +25,13 @@ fn pull_configs(config: &FetcherConfig, dest: &PathBuf) {
 
     let fetched_text = match &config.fetcher {
         Fetcher::Web(fetcher) => fetcher.do_fetch(),
-        Fetcher::Azure(fetcher) => fetcher.do_fetch()
+        Fetcher::Azure(fetcher) => fetcher.do_fetch(),
+        Fetcher::S3(fetcher) => fetcher.do_fetch(),
     };
 
     let fetched_text = match fetched_text {
         Some(text) => text,
-        None => return
+        None => return,
     };
 
     if let Err(e) = serde_yaml::from_str::<ConfigRoot>(&fetched_text) {
@@ -40,6 +41,6 @@ fn pull_configs(config: &FetcherConfig, dest: &PathBuf) {
 
     match fs::write(dest, fetched_text) {
         Ok(_) => info!("✅ Configs written"),
-        Err(e) => warn!("Unable to write to config file: {}", e)
+        Err(e) => warn!("Unable to write to config file: {}", e),
     }
 }

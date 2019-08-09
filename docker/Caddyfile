@@ -1,0 +1,8 @@
+gto.cx {
+    proxy / localhost:8000
+} 
+
+ui.gto.cx {
+    proxy / localhost:8001
+    gzip
+}

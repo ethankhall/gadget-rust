@@ -1,20 +1,22 @@
 extern crate hyper;
-#[macro_use] extern crate clap;
-#[macro_use] extern crate log;
-extern crate serde;
-extern crate serde_yaml;
-extern crate hotwatch;
+#[macro_use]
+extern crate clap;
+#[macro_use]
+extern crate log;
 extern crate chrono;
 extern crate gadget;
+extern crate hotwatch;
+extern crate serde;
+extern crate serde_yaml;
 
 #[cfg(test)]
 extern crate simple_logger;
 
 use std::path::PathBuf;
 
-use kopy_common_lib::configure_logging;
 use clap::{App, ArgMatches};
 use gadget::prelude::*;
+use kopy_common_lib::configure_logging;
 
 fn run(matches: &ArgMatches) {
     let path = PathBuf::from(matches.value_of("CONFIG").unwrap());
@@ -41,6 +43,6 @@ fn main() {
 
     match matches.subcommand() {
         ("run", Some(command_matches)) => run(command_matches),
-        _ => unimplemented!()
+        _ => unimplemented!(),
     };
 }

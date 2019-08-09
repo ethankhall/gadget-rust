@@ -1,17 +1,17 @@
 use std::convert::TryFrom;
-use std::fmt;
 use std::error::Error;
+use std::fmt;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ConfigRoot {
     pub missing_redirect_destination: String,
-    pub redirects: Vec<RedirectDefinition>
+    pub redirects: Vec<RedirectDefinition>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RedirectDefinition {
     pub alias: String,
-    pub destination: String
+    pub destination: String,
 }
 
 impl ConfigRoot {
@@ -24,7 +24,7 @@ impl ConfigRoot {
 pub struct CompiledConfigs {
     default_redirect: DefaultRedirect,
     alias_redirects: Vec<AliasRedirect>,
-    direct_redirects: Vec<DirectRedirect>
+    direct_redirects: Vec<DirectRedirect>,
 }
 
 impl CompiledConfigs {
@@ -36,7 +36,10 @@ impl CompiledConfigs {
                 Ok(CompiledRedirect::Alias(alias)) => alias_redirects.push(alias),
                 Ok(CompiledRedirect::Direct(raw)) => direct_redirects.push(raw),
                 Err(e) => {
-                    warn!("DROPPED: Unable to process alias {} because {:?}", redirect.alias, e);
+                    warn!(
+                        "DROPPED: Unable to process alias {} because {:?}",
+                        redirect.alias, e
+                    );
                 }
             }
         }
@@ -44,7 +47,7 @@ impl CompiledConfigs {
         CompiledConfigs {
             default_redirect: DefaultRedirect::new(s!(missing_redirect_destination)),
             alias_redirects,
-            direct_redirects
+            direct_redirects,
         }
     }
 
@@ -52,11 +55,19 @@ impl CompiledConfigs {
         let url = url.replace("%20", " ");
         let split_path: Vec<_> = url.split(" ").collect();
         let path = split_path.first().unwrap();
-        if let Some(dest) = self.direct_redirects.iter().find(|redirect| redirect.matches(path)) {
+        if let Some(dest) = self
+            .direct_redirects
+            .iter()
+            .find(|redirect| redirect.matches(path))
+        {
             return dest.get_destination(&url);
         }
 
-        if let Some(dest) = self.alias_redirects.iter().find(|redirect| redirect.matches(path)) {
+        if let Some(dest) = self
+            .alias_redirects
+            .iter()
+            .find(|redirect| redirect.matches(path))
+        {
             return dest.get_destination(&url);
         }
 
@@ -66,7 +77,7 @@ impl CompiledConfigs {
 
 enum CompiledRedirect {
     Alias(AliasRedirect),
-    Direct(DirectRedirect)
+    Direct(DirectRedirect),
 }
 
 impl TryFrom<RedirectDefinition> for CompiledRedirect {
@@ -79,8 +90,14 @@ impl TryFrom<RedirectDefinition> for CompiledRedirect {
         }
 
         match split_alias[2] {
-            "alias" => Ok(CompiledRedirect::Alias(AliasRedirect::new(split_alias[3].to_lowercase(), s!(value.destination)))),
-            "direct" => Ok(CompiledRedirect::Direct(DirectRedirect::new(split_alias[3].to_lowercase(), s!(value.destination)))),
+            "alias" => Ok(CompiledRedirect::Alias(AliasRedirect::new(
+                split_alias[3].to_lowercase(),
+                s!(value.destination),
+            ))),
+            "direct" => Ok(CompiledRedirect::Direct(DirectRedirect::new(
+                split_alias[3].to_lowercase(),
+                s!(value.destination),
+            ))),
             _ => {
                 return Err(ParseRedirectError::new(&value.destination));
             }
@@ -90,7 +107,7 @@ impl TryFrom<RedirectDefinition> for CompiledRedirect {
 
 #[derive(Debug)]
 pub struct ParseRedirectError {
-    body: String
+    body: String,
 }
 
 impl ParseRedirectError {
@@ -128,21 +145,18 @@ trait Redirect {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DirectRedirect {
     pub alias: String,
-    pub destination: String
+    pub destination: String,
 }
 
 impl DirectRedirect {
-    fn new (alias: String, destination: String) -> Self {
+    fn new(alias: String, destination: String) -> Self {
         let alias = if !alias.starts_with("/") {
             format!("/{}", alias)
         } else {
             alias
         };
 
-        DirectRedirect {
-            alias,
-            destination
-        }
+        DirectRedirect { alias, destination }
     }
 }
 
@@ -157,21 +171,25 @@ impl Redirect for DirectRedirect {
     }
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct AliasRedirect {
     pub alias: String,
-    pub destinations: Vec<String>
+    pub destinations: Vec<String>,
 }
 
 #[test]
 fn do_test() {
-    let split: Vec<_> = "http://google.com{/foo/$1{/bar/$2}}".split(|x:char| x == '{' || x == '}').collect();
-    assert_eq!(vec!["http://google.com", "/foo/$1", "/bar/$2", "", ""], split);
+    let split: Vec<_> = "http://google.com{/foo/$1{/bar/$2}}"
+        .split(|x: char| x == '{' || x == '}')
+        .collect();
+    assert_eq!(
+        vec!["http://google.com", "/foo/$1", "/bar/$2", "", ""],
+        split
+    );
 }
 
 impl AliasRedirect {
-    fn new (alias: String, destination: String) -> Self {
+    fn new(alias: String, destination: String) -> Self {
         let alias = if !alias.starts_with("/") {
             format!("/{}", alias)
         } else {
@@ -180,7 +198,7 @@ impl AliasRedirect {
 
         let mut destinations = Vec::new();
 
-        let mut parts: Vec<_> = destination.split(|x:char| x == '{' || x == '}').collect();
+        let mut parts: Vec<_> = destination.split(|x: char| x == '{' || x == '}').collect();
 
         let last_open = destination.rfind("{");
         let first_close = destination.find("}");
@@ -212,7 +230,7 @@ impl AliasRedirect {
 
         AliasRedirect {
             alias,
-            destinations
+            destinations,
         }
     }
 }
@@ -222,9 +240,19 @@ impl Redirect for AliasRedirect {
         let mut inputs: Vec<&str> = input.split(" ").collect();
         inputs.remove(0);
         let (size, destination) = if inputs.len() <= self.destinations.len() {
-            (inputs.len(), s!(self.destinations.get(inputs.len()).unwrap()))
+            (
+                inputs.len(),
+                s!(self.destinations.get(inputs.len()).unwrap()),
+            )
         } else {
-            (self.destinations.len(), format!("{} {}", self.destinations.last().unwrap(), inputs[inputs.len()..].join(" ")))
+            (
+                self.destinations.len(),
+                format!(
+                    "{} {}",
+                    self.destinations.last().unwrap(),
+                    inputs[inputs.len()..].join(" ")
+                ),
+            )
         };
 
         let mut destination = s!(destination);
@@ -243,11 +271,11 @@ impl Redirect for AliasRedirect {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct DefaultRedirect {
-    pub destination: String
+    pub destination: String,
 }
 
 impl DefaultRedirect {
-    fn new (destination: String) -> Self {
+    fn new(destination: String) -> Self {
         DefaultRedirect { destination }
     }
 }
@@ -268,45 +296,60 @@ mod test {
 
     #[test]
     fn parse_direct() {
-        assert_eq!(DirectRedirect::new(s!("/foo"), s!("http://google.com")), make_direct_redirect("foo", "http://google.com"));
-        assert_eq!("http://google.com/bar/baz", make_direct_redirect("foo", "http://google.com").get_destination("/foo/bar/baz"));
-        assert_eq!("http://google.com", make_direct_redirect("foo", "http://google.com").get_destination("/foo"));
+        assert_eq!(
+            DirectRedirect::new(s!("/foo"), s!("http://google.com")),
+            make_direct_redirect("foo", "http://google.com")
+        );
+        assert_eq!(
+            "http://google.com/bar/baz",
+            make_direct_redirect("foo", "http://google.com").get_destination("/foo/bar/baz")
+        );
+        assert_eq!(
+            "http://google.com",
+            make_direct_redirect("foo", "http://google.com").get_destination("/foo")
+        );
     }
 
     #[test]
     fn parse_alias() {
         let _ = simple_logger::init();
 
-        assert_eq!(AliasRedirect::new(s!("/foo"), s!("http://google.com")), make_alias_redirect("foo", "http://google.com"));
+        assert_eq!(
+            AliasRedirect::new(s!("/foo"), s!("http://google.com")),
+            make_alias_redirect("foo", "http://google.com")
+        );
         let alias = make_alias_redirect("foo", "http://google.com");
         assert_eq!("http://google.com", alias.get_destination("/foo"));
 
         let alias = make_alias_redirect("foo", "http://google.com{/foo/$1}");
         assert_eq!("http://google.com", alias.get_destination("/foo"));
-        assert_eq!("http://google.com/foo/bar", alias.get_destination("/foo bar"));
+        assert_eq!(
+            "http://google.com/foo/bar",
+            alias.get_destination("/foo bar")
+        );
     }
 
     fn make_direct_redirect(alias: &str, dest: &str) -> DirectRedirect {
         let redirect = RedirectDefinition {
             alias: format!("urn:gadget:direct:{}", alias),
-            destination: format!("{}", dest)
+            destination: format!("{}", dest),
         };
 
         match CompiledRedirect::try_from(redirect).unwrap() {
             CompiledRedirect::Direct(raw) => raw,
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
 
     fn make_alias_redirect(alias: &str, dest: &str) -> AliasRedirect {
         let redirect = RedirectDefinition {
             alias: format!("urn:gadget:alias:{}", alias),
-            destination: format!("{}", dest)
+            destination: format!("{}", dest),
         };
 
         match CompiledRedirect::try_from(redirect).unwrap() {
             CompiledRedirect::Alias(alias) => alias,
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
 }

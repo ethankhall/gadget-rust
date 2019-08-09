@@ -1,18 +1,19 @@
 extern crate hyper;
-#[macro_use] extern crate clap;
-extern crate serde;
-extern crate serde_yaml;
-extern crate hotwatch;
+#[macro_use]
+extern crate clap;
 extern crate chrono;
 extern crate gadget;
+extern crate hotwatch;
+extern crate serde;
+extern crate serde_yaml;
 
 #[cfg(test)]
 extern crate simple_logger;
 
 use std::path::PathBuf;
 
-use kopy_common_lib::configure_logging;
 use clap::App;
+use kopy_common_lib::configure_logging;
 
 use gadget::prelude::*;
 
@@ -35,7 +36,7 @@ fn main() {
 
     match matches.subcommand() {
         ("poll", Some(_)) => run_fetcher(fetch_config_path, dest),
-        ("push", Some(_)) => run_pusher(fetch_config_path, dest),
-        _ => unimplemented!()
+        ("sync", Some(_)) => run_syncer(fetch_config_path, dest),
+        _ => unimplemented!(),
     };
 }

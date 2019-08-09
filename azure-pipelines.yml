@@ -17,11 +17,7 @@ jobs:
           set -e
           docker build -t gadget-server rust-applications
           docker build -t gadget-local-ui gadget-local-ui
-      - task: Docker@2
-        displayName: Login to ACR
-        inputs:
-          command: login
-          containerRegistry: gadget-connection
+          docker build -t gadget-caddy -f docker/Caddy.dockerfile docker
       - script: |
           set -e
           mkdir ~/bin || true
@@ -30,11 +26,6 @@ jobs:
           ~/bin/crom tag-version --source local,github --ignore-changes
 
           VERSION=$(~/bin/crom get current-version --no-snapshot)
-
-          docker tag gadget-server gadget.azurecr.io/gadget-server:$VERSION
-          docker push gadget.azurecr.io/gadget-server:$VERSION
-          docker tag gadget-local-ui gadget.azurecr.io/gadget-local-ui:$VERSION
-          docker push gadget.azurecr.io/gadget-local-ui:$VERSION
 
           export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
           echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
@@ -50,4 +41,7 @@ jobs:
 
           docker tag gadget-local-ui us.gcr.io/${GCP_IMAGE_PROJECT}/gadget-local-ui:$VERSION
           docker push us.gcr.io/${GCP_IMAGE_PROJECT}/gadget-local-ui:$VERSION
+          
+          docker tag gadget-caddy us.gcr.io/${GCP_IMAGE_PROJECT}/gadget-caddy:$VERSION
+          docker push us.gcr.io/${GCP_IMAGE_PROJECT}/gadget-caddy:$VERSION
         condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))

@@ -1,0 +1,56 @@
+missing_redirect_destination: 'http://ui.gto.cx'
+redirects:
+  - alias: 'urn:gadget:alias:bear'
+    destination: 'https://www.instagram.com/bearandsocks/'
+    id: 1
+  - alias: 'urn:gadget:alias:vaca/truk'
+    destination: 'https://www.flickr.com/photos/ethankhall/albums/72157705057427262'
+    id: 2
+  - alias: 'urn:gadget:alias:dog'
+    destination: 'https://www.instagram.com/explore/tags/dogs_of_instigaram/'
+    id: 3
+  - alias: 'urn:gadget:alias:nas/syncthing'
+    destination: 'http://172.20.1.101:8090/'
+    id: 4
+  - alias: 'urn:gadget:alias:nas'
+    destination: 'http://172.20.1.101'
+    id: 5
+  - alias: 'urn:gadget:alias:dive-presentation'
+    destination: 'https://1drv.ms/p/s!AtanU3tQXs3lnwy_LXWwa_G7XnxR'
+    id: 6
+  - alias: 'urn:gadget:alias:crom'
+    destination: 'https://github.com/ethankhall/crom'
+    id: 7
+  - alias: 'urn:gadget:alias:talk-teaser'
+    destination: 'https://1drv.ms/w/s!AtanU3tQXs3lsRqeIVDLqvjms6R2'
+    id: 8
+  - alias: 'urn:gadget:alias:jira'
+    destination: 'https://sprout.atlassian.net{/browse/$1}'
+    id: 9
+  - alias: 'urn:gadget:alias:profile-board'
+    destination: 'https://sprout.atlassian.net/secure/RapidBoard.jspa?rapidView=437&quickFilter=2272'
+    id: 10
+  - alias: 'urn:gadget:alias:learning-from-failure'
+    destination: 'https://1drv.ms/p/s!AtanU3tQXs3ltCJF2wxsQ7fq3YE3'
+    id: 11
+  - alias: 'urn:gadget:alias:ilo'
+    destination: 'https://172.20.1.100'
+    id: 12
+  - alias: 'urn:gadget:alias:hydra'
+    destination: 'http://172.20.2.100:5076/config/indexers'
+    id: 13
+  - alias: 'urn:gadget:alias:sabnzbd'
+    destination: 'http://172.20.2.100:8080'
+    id: 14
+  - alias: 'urn:gadget:alias:radarr'
+    destination: 'http://172.20.2.100:7878/'
+    id: 15
+  - alias: 'urn:gadget:alias:sonarr'
+    destination: 'http://172.20.2.100:8989/'
+    id: 16
+  - alias: 'urn:gadget:alias:download'
+    destination: 'http://172.20.2.100:8080/'
+    id: 17
+  - alias: 'urn:gadget:alias:vaca/galapagos'
+    destination: 'https://adobe.ly/2OkUYk4'
+    id: 18

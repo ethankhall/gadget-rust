@@ -1,22 +1,22 @@
 pub mod config;
 
-use std::path::PathBuf;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
-use hotwatch::{Hotwatch, Event};
-use hyper::{Body, Response, Server};
-use hyper::service::service_fn_ok;
-use hyper::rt::{self, Future};
 use chrono::prelude::*;
+use hotwatch::{Event, Hotwatch};
+use hyper::rt::{self, Future};
+use hyper::service::service_fn_ok;
+use hyper::{Body, Response, Server};
 
-use crate::config::read_config;
 use self::config::*;
+use crate::config::read_config;
 
 pub fn run_webserver(bind_addr: SocketAddr, config_path: PathBuf) {
     let config_root: ConfigRoot = match read_config(config_path.clone()) {
         Ok(config_root) => config_root,
-        Err(err) => panic!("{}", err)
+        Err(err) => panic!("{}", err),
     };
 
     info!("📚 Config read, ready to process!");
@@ -28,20 +28,22 @@ pub fn run_webserver(bind_addr: SocketAddr, config_path: PathBuf) {
     let mut hotwatch = Hotwatch::new().expect("Hotwatch failed to initialize.");
     {
         let hotwatch_config = shared_config.clone();
-        hotwatch.watch(config_path.clone(), move |event: Event| {
-            let config: Arc<RwLock<CompiledConfigs>> = hotwatch_config.clone();
-            if let Event::Write(path) = event {
-                match read_config::<ConfigRoot>(path) {
-                    Ok(config_root) => {
-                        *config.write().unwrap() = config_root.compile();
-                        info!("Configs were reloaded at {}.", Local::now())
-                    },
-                    Err(err) => {
-                        warn!("Unable to open updated config ({}), ignoring...", err);
-                    }
-                };
-            }
-        }).expect("Failed to watch file!");
+        hotwatch
+            .watch(config_path.clone(), move |event: Event| {
+                let config: Arc<RwLock<CompiledConfigs>> = hotwatch_config.clone();
+                if let Event::Write(path) = event {
+                    match read_config::<ConfigRoot>(path) {
+                        Ok(config_root) => {
+                            *config.write().unwrap() = config_root.compile();
+                            info!("Configs were reloaded at {}.", Local::now())
+                        }
+                        Err(err) => {
+                            warn!("Unable to open updated config ({}), ignoring...", err);
+                        }
+                    };
+                }
+            })
+            .expect("Failed to watch file!");
     }
 
     let new_service = move || {
