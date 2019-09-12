@@ -28,6 +28,8 @@ jobs:
       with:
         args: auth configure-docker
     - name: Publish
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         mkdir ~/bin || true
         curl --location https://github.com/ethankhall/crom/releases/download/v0.2.2/crom-linux-musl.tar.gz | tar -xvz  -C ~/bin
