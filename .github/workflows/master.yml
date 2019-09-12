@@ -35,6 +35,7 @@ jobs:
         curl --location https://github.com/ethankhall/crom/releases/download/v0.2.2/crom-linux-musl.tar.gz | tar -xvz  -C ~/bin
         chmod +x ~/bin/crom
         ~/bin/crom tag-version --source local,github --ignore-changes
+        VERSION=$(~/bin/crom get current-version --no-snapshot)
 
         docker tag gadget-server us.gcr.io/conainter-imagers/gadget-server:$VERSION
         docker push us.gcr.io/conainter-imagers/gadget-server:$VERSION
