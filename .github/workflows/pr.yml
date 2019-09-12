@@ -6,14 +6,17 @@ on:
     - master
 
 jobs:
-  build:
+  build-rust:
     runs-on: ubuntu-18.04
-    container:
-      image: rustlang/rust:nightly
 
     steps:
     - uses: actions/checkout@v1
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+    - name: Build gadget
+      run: docker build -t gadget-server rust-applications
+
+  build-webapp:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build webapp
+      run: docker build -t gadget-local-ui gadget-local-ui
