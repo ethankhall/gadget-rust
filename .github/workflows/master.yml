@@ -15,27 +15,31 @@ jobs:
       run: docker build -t gadget-server rust-applications
     - name: Build webapp
       run: docker build -t gadget-local-ui gadget-local-ui
-    - name: GCP login
-      uses: actions/gcloud/auth@master
-      env:
-        GCLOUD_AUTH: ${{ secrets.GCLOUD_AUTH }}
-    - name: GCP Set Project
-      uses: actions/gcloud/cli@master
-      with:
-        args: config set project conainter-imagers
-    - name: Configure Docker
-      uses: actions/gcloud/cli@master
-      with:
-        args: auth configure-docker
+    # - name: GCP login
+    #   uses: actions/gcloud/auth@master
+    #   env:
+    #     GCLOUD_AUTH: ${{ secrets.GCLOUD_AUTH }}
+    # - name: GCP Set Project
+    #   uses: actions/gcloud/cli@master
+    #   with:
+    #     args: config set project conainter-imagers
+    # - name: Configure Docker
+    #   uses: actions/gcloud/cli@master
+    #   with:
+    #     args: auth configure-docker
+
     - name: Publish
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GCLOUD_AUTH: ${{ secrets.GCLOUD_AUTH }}
       run: |
         mkdir ~/bin || true
         curl --location https://github.com/ethankhall/crom/releases/download/v0.2.2/crom-linux-musl.tar.gz | tar -xvz  -C ~/bin
         chmod +x ~/bin/crom
         ~/bin/crom tag-version --source local,github --ignore-changes
         VERSION=$(~/bin/crom get current-version --no-snapshot)
+
+        echo $GCLOUD_AUTH | base64 -d | docker login -u _json_key --password-stdin https://us.gcr.io
 
         docker tag gadget-server us.gcr.io/conainter-imagers/gadget-server:$VERSION
         docker push us.gcr.io/conainter-imagers/gadget-server:$VERSION
