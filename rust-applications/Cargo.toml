@@ -13,7 +13,7 @@ serde_yaml = "0.*"
 serde_derive = "1.0"
 serde = "1.0"
 clap = { version = "2.32", features = ["yaml"] }
-hyper = "0.12"
+hyper = "0.13"
 dotenv = "0.14"
 kopy-common-lib = { git = "https://github.com/ethankhall/rust-shared.git", rev = "84a38d080b5a066c7443e6a46e043708d2a53f39" }
 log = "*"
