@@ -1,3 +1,0 @@
-fetch_url: "localhost:8001/api/body"
-fetch_id: "123abc"
-frequency: 60
