@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
 use r2d2::{Pool, PooledConnection};
@@ -32,6 +34,7 @@ impl Into<RowChange<RedirectModel>> for QueryResult<RedirectModel> {
 
 impl PostgresBackend {
     pub fn new<S: ToString>(connection: S) -> Self {
+        info!("Connecting to PostgresDB");
         let manager = ConnectionManager::<PgConnection>::new(&connection.to_string());
         let pool = Pool::builder()
             .max_size(1)
@@ -86,10 +89,24 @@ impl super::Backend for PostgresBackend {
             .into()
     }
 
-    fn get_all(&self, page: i64, limit: i64) -> Result<Vec<RedirectModel>, String> {
+    fn get_all(&self, page: u64, limit: usize) -> Result<Vec<RedirectModel>, String> {
+        let i_limit: i64 = match limit.try_into() {
+            Ok(i) => i,
+            Err(e) => {
+                return Err(format!("{}", e));
+            }
+        };
+
+        let i_page: i64 = match page.try_into() {
+            Ok(i) => i,
+            Err(e) => {
+                return Err(format!("{}", e));
+            }
+        };
+        
         redirects
-            .limit(limit)
-            .offset(page * limit)
+            .limit(i_limit)
+            .offset(i_page * i_limit)
             .get_results::<RedirectModel>(&self.connection)
             .map_err(|x| format!("{:?}", x))
     }
