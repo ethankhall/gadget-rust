@@ -87,8 +87,8 @@ async fn main() -> std::io::Result<()> {
                     .route(web::delete().to(handlers::delete_redirect))
                     .route(web::put().to(handlers::update_redirect)),
             )
-            .route("/_gadget/ui", web::get().to(ui::serve))
-            .route("/_gadget/ui/{filename:.*}", web::get().to(ui::serve))
+            .route("/_gadget/ui", web::get().to(ui::serve_embedded))
+            .route("/_gadget/ui/{filename:.*}", web::get().to(ui::serve_embedded))
             .route("/{path:.*}", web::get().to(handlers::find_redirect))
             .data(backend.clone())
             .wrap(middleware::Logger::default())

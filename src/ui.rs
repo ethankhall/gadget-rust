@@ -7,9 +7,9 @@ use std::borrow::Cow;
 #[folder = "public/"]
 struct Asset;
 
-pub async fn serve(req: HttpRequest) -> HttpResponse {
+pub async fn serve_embedded(req: HttpRequest) -> HttpResponse {
     let mut path: String = req.match_info().query("filename").parse().unwrap();
-    
+
     if path == "" {
         path = "index.html".to_string();
     }
