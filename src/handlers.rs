@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::sync::Arc;
 
 use actix_web::{http::header::LOCATION, web, HttpResponse};
@@ -59,12 +58,12 @@ pub async fn new_redirect_json(
         .create_redirect(&info.alias, &info.destination)
     {
         RowChange::Value(result) => HttpResponse::SeeOther()
-            .header(LOCATION, format!("/_gadget/ui?redirect={}", result.alias))
+            .header(LOCATION, format!("/_gadget/ui/{}", result.alias))
             .finish(),
         RowChange::Err(e) => {
             warn!("Unable to create redirect: {:?}", e);
             HttpResponse::InternalServerError().body(format!("Unable to create redirect: {:?}", e))
-        },
+        }
         RowChange::NotFound => {
             warn!("Unable to create redirect");
             HttpResponse::InternalServerError().body("Unable to create redirect: {:?}")
@@ -84,18 +83,16 @@ pub async fn update_redirect(
 }
 
 pub async fn find_redirect(info: web::Path<String>, context: web::Data<Context>) -> HttpResponse {
-    info!("Path: {}", &info);
     match context.backend.get_redirect(&info) {
-        RowChange::Value(value) => match AliasRedirect::try_from(value) {
-            Ok(redirect) => HttpResponse::TemporaryRedirect()
+        RowChange::Value(value) => {
+            let redirect = AliasRedirect::from(value);
+            HttpResponse::TemporaryRedirect()
                 .header(LOCATION, redirect.get_destination(&info))
-                .finish(),
-            Err(e) => {
-                warn!("Unable to get redirect: {:?}", e);
-                HttpResponse::InternalServerError().body("Unable to get redirect")
-            }
-        },
-        RowChange::NotFound => HttpResponse::NotFound().finish(),
+                .finish()
+        }
+        RowChange::NotFound => HttpResponse::TemporaryRedirect()
+            .header(LOCATION, format!("/_gadget/ui?search={}", &info))
+            .finish(),
         RowChange::Err(e) => {
             warn!("Unable to get redirect: {:?}", e);
             HttpResponse::InternalServerError().body("Unable to get redirect")

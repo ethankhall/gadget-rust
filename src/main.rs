@@ -4,10 +4,15 @@ extern crate diesel;
 extern crate clap;
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate prometheus;
+#[macro_use]
+extern crate rust_embed;
 
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{guard, middleware, web, App, HttpResponse, HttpServer};
 use dotenv::dotenv;
 use flexi_logger::{colored_with_thread, LevelFilter, LogSpecBuilder, Logger};
+use futures_util::join;
 
 #[macro_export]
 macro_rules! s {
@@ -16,9 +21,11 @@ macro_rules! s {
     };
 }
 
+mod admin;
 mod backend;
 mod handlers;
 mod redirect;
+mod ui;
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
@@ -63,21 +70,25 @@ async fn main() -> std::io::Result<()> {
             .expect("To have a DB connection"),
     );
 
-    HttpServer::new(move || {
+    let main_server = HttpServer::new(move || {
         App::new()
+            .wrap(admin::Metrics::default())
             .service(web::resource("favicon.ico").to(handlers::favicon))
-            .route(
-                "/_gadget/redirect",
-                web::post().to(handlers::new_redirect_json),
+            .service(
+                web::resource("/_gadget/api/redirect")
+                    .name("make_redirect")
+                    .guard(guard::Header("content-type", "application/json"))
+                    .route(web::post().to(handlers::new_redirect_json)),
             )
-            .route(
-                "/_gadget/redirect/{id}",
-                web::delete().to(handlers::delete_redirect),
+            .service(
+                web::resource("/_gadget/api/redirect/{id}")
+                    .name("change_redirect")
+                    .guard(guard::Header("content-type", "application/json"))
+                    .route(web::delete().to(handlers::delete_redirect))
+                    .route(web::put().to(handlers::update_redirect)),
             )
-            .route(
-                "/_gadget/redirect/{id}",
-                web::put().to(handlers::update_redirect),
-            )
+            .route("/_gadget/ui", web::get().to(ui::serve))
+            .route("/_gadget/ui/{filename:.*}", web::get().to(ui::serve))
             .route("/{path:.*}", web::get().to(handlers::find_redirect))
             .data(backend.clone())
             .wrap(middleware::Logger::default())
@@ -87,7 +98,24 @@ async fn main() -> std::io::Result<()> {
         matches
             .value_of("listen_server")
             .expect("To be able to get listen address"),
-    )?
-    .start()
-    .await
+    )
+    .expect("to be able to bind to http address")
+    .run();
+
+    let admin_server = HttpServer::new(|| {
+        App::new()
+            .route("/metrics", web::get().to(admin::metrics_endpoint))
+            .route("/status", web::get().to(|| HttpResponse::from("OK")))
+            .default_service(web::to(|| async { "404" }))
+    })
+    .bind(
+        matches
+            .value_of("listen_metrics")
+            .expect("To be able to get listen address"),
+    )
+    .expect("to be able to bind to metrics address")
+    .run();
+
+    let (_main, _admin) = join!(main_server, admin_server);
+    Ok(())
 }

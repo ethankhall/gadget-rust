@@ -27,6 +27,7 @@ impl Into<RowChange<RedirectModel>> for QueryResult<RedirectModel> {
     fn into(self) -> RowChange<RedirectModel> {
         match self {
             Ok(i) => RowChange::Value(i),
+            Err(diesel::result::Error::NotFound) => RowChange::NotFound,
             Err(e) => RowChange::Err(format!("{}", e)),
         }
     }
@@ -55,19 +56,16 @@ impl super::Backend for PostgresBackend {
             .into()
     }
 
-    fn create_redirect(
-        &self,
-        new_alias: &str,
-        new_destination: &str,
-    ) -> RowChange<RedirectModel> {
+    fn create_redirect(&self, new_alias: &str, new_destination: &str) -> RowChange<RedirectModel> {
         let new_redirect = RedirectInsert::new(new_alias, new_destination);
 
         match diesel::insert_into(redirects)
             .values(&new_redirect)
-            .get_result::<RedirectModel>(&self.connection) {
-                Ok(value) => RowChange::Value(value),
-                Err(e) => RowChange::Err(format!("{:?}", e))
-            }
+            .get_result::<RedirectModel>(&self.connection)
+        {
+            Ok(value) => RowChange::Value(value),
+            Err(e) => RowChange::Err(format!("{:?}", e)),
+        }
     }
 
     fn delete_redirect(&self, redirect_ref: &str) -> RowChange<usize> {
@@ -103,7 +101,7 @@ impl super::Backend for PostgresBackend {
                 return Err(format!("{}", e));
             }
         };
-        
+
         redirects
             .limit(i_limit)
             .offset(i_page * i_limit)

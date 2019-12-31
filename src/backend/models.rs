@@ -2,8 +2,8 @@ use super::schema::redirects;
 use chrono::{NaiveDateTime, Utc};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
+use serde::{Deserialize, Serialize};
 use std::iter;
-use serde::{Serialize, Deserialize};
 
 #[derive(Queryable, Serialize, Deserialize, Clone, PartialEq)]
 pub struct RedirectModel {
@@ -16,11 +16,10 @@ pub struct RedirectModel {
 }
 
 impl RedirectModel {
-
     pub fn set_destination(&mut self, destination: &str) {
         self.destination = destination.to_string();
     }
-    
+
     pub fn new(id: i32, alias: &str, destination: &str) -> Self {
         RedirectModel {
             redirect_id: id,

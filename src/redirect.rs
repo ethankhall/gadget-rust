@@ -1,5 +1,4 @@
 use crate::backend::RedirectModel;
-use std::convert::TryFrom;
 
 pub trait Redirect {
     fn get_destination(&self, input: &str) -> String;
@@ -12,11 +11,9 @@ pub struct AliasRedirect {
     destinations: Vec<String>,
 }
 
-impl TryFrom<RedirectModel> for AliasRedirect {
-    type Error = &'static str;
-
-    fn try_from(value: RedirectModel) -> Result<Self, Self::Error> {
-        Ok(AliasRedirect::new(value.alias, value.destination))
+impl From<RedirectModel> for AliasRedirect {
+    fn from(value: RedirectModel) -> Self {
+        AliasRedirect::new(value.alias, value.destination)
     }
 }
 

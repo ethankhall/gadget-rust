@@ -1,7 +1,7 @@
-mod postgres;
-mod models;
-mod schema;
 mod json;
+mod models;
+mod postgres;
+mod schema;
 
 pub use models::RedirectModel;
 
@@ -14,9 +14,9 @@ impl BackendContainer {
     pub fn new<T: ToString>(url: T) -> Self {
         let url = url.to_string();
         if url.starts_with("postgresql://") {
-            return BackendContainer::Postgres(postgres::PostgresBackend::new(url))
+            return BackendContainer::Postgres(postgres::PostgresBackend::new(url));
         } else if url.starts_with("file://") {
-            return BackendContainer::Json(json::JsonBackend::new(url))
+            return BackendContainer::Json(json::JsonBackend::new(url));
         } else {
             error!("Database path must start with either postgresql:// or file://");
             panic!();
@@ -33,11 +33,7 @@ pub enum RowChange<T> {
 pub trait Backend {
     fn get_redirect(&self, redirect_ref: &str) -> RowChange<RedirectModel>;
 
-    fn create_redirect(
-        &self,
-        new_alias: &str,
-        new_destination: &str,
-    ) -> RowChange<RedirectModel>;
+    fn create_redirect(&self, new_alias: &str, new_destination: &str) -> RowChange<RedirectModel>;
 
     fn update_redirect(&self, redirect_ref: &str, new_dest: &str) -> RowChange<usize>;
 
@@ -54,11 +50,7 @@ impl Backend for BackendContainer {
         }
     }
 
-    fn create_redirect(
-        &self,
-        new_alias: &str,
-        new_destination: &str,
-    ) -> RowChange<RedirectModel> {
+    fn create_redirect(&self, new_alias: &str, new_destination: &str) -> RowChange<RedirectModel> {
         match self {
             BackendContainer::Postgres(p) => p.create_redirect(new_alias, new_destination),
             BackendContainer::Json(j) => j.create_redirect(new_alias, new_destination),

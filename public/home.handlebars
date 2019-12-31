@@ -1,0 +1,58 @@
+<script type="text/javascript">
+    function confirmDeleteModal(id){
+        $('#deleteModal').modal();
+        $('#deleteButton').html('<a class="btn btn-danger" href="/delete/' + id + '">Delete</a>');
+    }     
+    function deleteData(id){
+        // do your stuffs with id
+        $("#successMessage").html("Record With id "+id+" Deleted successfully!");
+        $('#deleteModal').modal('hide'); // now close modal
+    }
+
+    function showNewWindow() {
+        console.log("onClick")
+        $.get('/_gadget/ui/new.handlebars', function (data) {
+            var template=Handlebars.compile(data);
+            $("#container").html(template({}));
+        }, 'html');
+    }
+</script>
+
+<!-- Delete Modal --->
+<div id="deleteModal" class="modal fade" role='dialog'>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <p>Do You Really Want to Delete This ?</p>
+                
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+				<span id= 'deleteButton'></span>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal ends here --->
+<table class="table table-striped table-hover">
+     <thead>
+        <tr>
+        <th scope="col">id</th>
+        <th scope="col">Alias</th>
+        <th scope="col">Destination</th>
+        <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#redirects}}
+        <tr>
+            <td>{{id}}</td>
+            <td>{{alias}}</td>
+            <td>{{destination}}</td>
+            <td><a onclick="confirmDeleteModal('{{id}}')">❌</a></td>
+        </tr>
+        {{/redirects}}
+    </tbody>
+</table>
+
+<button onclick="showNewWindow()" type="button" class="btn btn-primary">New Entry</button>
