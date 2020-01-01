@@ -138,16 +138,19 @@ impl super::Backend for JsonBackend {
         result
     }
 
-    fn get_all(&self, page: u64, limit: usize) -> Result<Vec<RedirectModel>, String> {
+    fn get_all(&self, page: u64, limit: usize) -> RowChange<Vec<RedirectModel>> {
         let begin: usize = limit * page as usize;
         let end: usize = begin + limit;
         match self.storage.read() {
-            Ok(v) => Ok(v
+            Ok(v) => {
+                let data = v
                 .get((begin)..(end))
                 .map(|x| x.clone())
                 .unwrap_or_default()
-                .to_vec()),
-            Err(e) => Err(e.to_string()),
+                .to_vec();
+                RowChange::Value(data)
+            },
+            Err(e) => RowChange::Err(e.to_string()),
         }
     }
 }

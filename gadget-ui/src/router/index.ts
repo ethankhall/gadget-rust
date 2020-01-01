@@ -1,6 +1,9 @@
 import Vue from "vue";
 import VueRouter from "vue-router";
-import Home from "../views/Home.vue";
+import RedirectList from "../views/RedirectList.vue";
+import EditRedirect from "../views/EditRedirect.vue";
+import CreateRedirect from '../views/CreateRedirect.vue';
+import DeleteRedirect from '../views/DeleteRedirect.vue';
 
 Vue.use(VueRouter);
 
@@ -8,22 +11,28 @@ const routes = [
   {
     path: "/",
     name: "home",
-    component: Home
+    component: RedirectList
   },
   {
-    path: "/about",
-    name: "about",
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () =>
-      import(/* webpackChunkName: "about" */ "../views/About.vue")
-  }
+    path: "/redirect/edit/:id",
+    name: "redirect",
+    component: EditRedirect
+  },
+  {
+    path: "/redirect/delete/:id",
+    name: "delete-redirect",
+    component: DeleteRedirect
+  },
+  {
+    path: "/redirect",
+    name: "create-redirect",
+    component: CreateRedirect
+  },
 ];
 
 const router = new VueRouter({
   mode: "history",
-  base: process.env.BASE_URL,
+  base: '/_gadget/ui/',
   routes
 });
 

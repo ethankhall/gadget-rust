@@ -9,7 +9,7 @@ extern crate prometheus;
 #[macro_use]
 extern crate rust_embed;
 
-use actix_web::{guard, middleware, web, App, HttpResponse, HttpServer};
+use actix_web::{web, middleware, App, HttpResponse, HttpServer};
 use dotenv::dotenv;
 use flexi_logger::{colored_with_thread, LevelFilter, LogSpecBuilder, Logger};
 use futures_util::join;
@@ -77,18 +77,19 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/_gadget/api/redirect")
                     .name("make_redirect")
-                    .guard(guard::Header("content-type", "application/json"))
-                    .route(web::post().to(handlers::new_redirect_json)),
+                    .route(web::post().to(handlers::new_redirect_json))
+                    .route(web::get().to(handlers::list_redirects)),
             )
             .service(
                 web::resource("/_gadget/api/redirect/{id}")
                     .name("change_redirect")
-                    .guard(guard::Header("content-type", "application/json"))
                     .route(web::delete().to(handlers::delete_redirect))
-                    .route(web::put().to(handlers::update_redirect)),
+                    .route(web::put().to(handlers::update_redirect))
+                    .route(web::get().to(handlers::get_redirect)),
             )
             .route("/_gadget/ui", web::get().to(ui::serve_embedded))
             .route("/_gadget/ui/{filename:.*}", web::get().to(ui::serve_embedded))
+            .route("/_gadget/.*", web::to(|| async { "404" }))
             .route("/{path:.*}", web::get().to(handlers::find_redirect))
             .data(backend.clone())
             .wrap(middleware::Logger::default())

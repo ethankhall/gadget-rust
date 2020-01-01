@@ -1,10 +1,25 @@
 <template>
   <div id="app">
-    <div id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
+    <!-- docs: https://bootstrap-vue.js.org/docs/components/navbar -->
+     <div>
+      <b-navbar type="dark" variant="dark">
+        <b-navbar-brand :to="{ name: 'home'}" >Gadget</b-navbar-brand>
+
+        <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
+
+        <b-collapse id="nav-collapse" is-nav>
+          <b-navbar-nav>
+            <b-nav-item :to="{ name: 'home'}" exact exact-active-class="active">List</b-nav-item>
+            <b-nav-item :to="{ name: 'create-redirect'}" exact exact-active-class="active">New</b-nav-item>
+          </b-navbar-nav>
+
+        </b-collapse>
+      </b-navbar>
     </div>
-    <router-view />
+    
+    <div class="container">
+      <router-view />
+    </div>
   </div>
 </template>
 

@@ -4,7 +4,9 @@ create table redirects(
     alias VARCHAR (512) NOT NULL,
     destination VARCHAR(2048) NOT NULL,
     created_on TIMESTAMP NOT NULL,
-    created_by VARCHAR (32) NULL
+    created_by VARCHAR (32) NULL,
+    UNIQUE(alias),
+    UNIQUE(public_ref)
 );
 
 create table usage(

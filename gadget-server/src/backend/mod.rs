@@ -39,7 +39,7 @@ pub trait Backend {
 
     fn delete_redirect(&self, redirect_ref: &str) -> RowChange<usize>;
 
-    fn get_all(&self, page: u64, limit: usize) -> Result<Vec<RedirectModel>, String>;
+    fn get_all(&self, page: u64, limit: usize) -> RowChange<Vec<RedirectModel>>;
 }
 
 impl Backend for BackendContainer {
@@ -71,7 +71,7 @@ impl Backend for BackendContainer {
         }
     }
 
-    fn get_all(&self, page: u64, limit: usize) -> Result<Vec<RedirectModel>, String> {
+    fn get_all(&self, page: u64, limit: usize) -> RowChange<Vec<RedirectModel>> {
         match self {
             BackendContainer::Postgres(p) => p.get_all(page, limit),
             BackendContainer::Json(j) => j.get_all(page, limit),

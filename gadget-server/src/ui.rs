@@ -1,4 +1,4 @@
-use actix_web::{HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, http::{StatusCode}};
 use mime_guess::from_path;
 use actix_web::body::Body;
 use std::borrow::Cow;
@@ -14,7 +14,13 @@ pub async fn serve_embedded(req: HttpRequest) -> HttpResponse {
         path = "index.html".to_string();
     }
 
-    let content = Asset::get(&path).unwrap();
+    let content = match Asset::get(&path) {
+        Some(v) => v,
+        None => {
+            return HttpResponse::build(StatusCode::NOT_FOUND).finish();
+        }
+    };
+
     let body: Body = match content {
         Cow::Borrowed(bytes) => bytes.into(),
         Cow::Owned(bytes) => bytes.into(),
