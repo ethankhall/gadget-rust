@@ -1,3 +1,4 @@
+#[cfg(feature = "postgres")]
 use super::schema::redirects;
 use chrono::{NaiveDateTime, Utc};
 use rand::distributions::Alphanumeric;
@@ -5,7 +6,8 @@ use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use std::iter;
 
-#[derive(Queryable, Serialize, Deserialize, Clone, PartialEq)]
+#[cfg_attr(feature = "postgres", derive(Queryable))]
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub struct RedirectModel {
     pub redirect_id: i32,
     pub public_ref: String,
@@ -32,6 +34,7 @@ impl RedirectModel {
     }
 }
 
+#[cfg(feature = "postgres")]
 #[derive(Insertable)]
 #[table_name = "redirects"]
 pub struct RedirectInsert<'a> {
@@ -41,6 +44,7 @@ pub struct RedirectInsert<'a> {
     pub created_on: NaiveDateTime,
 }
 
+#[cfg(feature = "postgres")]
 impl<'a> RedirectInsert<'a> {
     pub fn new(alias: &'a str, destination: &'a str) -> Self {
         RedirectInsert {

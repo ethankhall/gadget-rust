@@ -2,7 +2,7 @@
   <div class="home">
     <div v-if="errored">There was an error updating the redirect.</div>
     <div v-if="!loading">
-      <b-form @submit="onUpdate" @abort="onAbort" >
+      <b-form @submit="onUpdate" @abort="onAbort">
         <b-form-group id="input-group-1" label="Alias:" label-for="input-1">
           <b-form-input
             id="input-1"
@@ -55,7 +55,7 @@ export default {
   methods: {
     onAbort(evt) {
       evt.preventDefault();
-      this.$router.push({name: "home"});
+      this.$router.push({ name: "home" });
     },
     onUpdate(evt) {
       evt.preventDefault();
@@ -67,15 +67,14 @@ export default {
       axios
         .put(`/_gadget/api/redirect/${this.$route.params.id}`, data)
         .then(response => {
-          
           this.$bvToast.toast(`Redirect was updated successfuly.`, {
-            title: 'Success',
+            title: "Success",
             autoHideDelay: 2000,
             appendToast: true
           });
-
         })
         .catch(error => {
+          // eslint-disable-next-line
           console.log(error);
           this.errored = true;
         });
@@ -90,6 +89,7 @@ export default {
           this.redirect = response.data;
         })
         .catch(error => {
+          // eslint-disable-next-line
           console.log(error);
           this.errored = true;
         })

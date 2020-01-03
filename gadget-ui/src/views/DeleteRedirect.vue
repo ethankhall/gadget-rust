@@ -46,6 +46,7 @@ export default {
           this.redirect = response.data;
         })
         .catch(error => {
+          // eslint-disable-next-line
           console.log(error);
           this.errored = true;
         })
@@ -59,6 +60,7 @@ export default {
           this.$router.push({name: "home"});
         })
         .catch(error => {
+          // eslint-disable-next-line
           console.log(error);
           this.errored = true;
         });

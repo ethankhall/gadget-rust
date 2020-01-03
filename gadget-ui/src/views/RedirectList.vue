@@ -1,5 +1,8 @@
 <template>
     <b-container fluid v-if="redirects">
+    <b-row>
+      <b-nav-item :to="{ name: 'create-redirect'}" exact exact-active-class="active">➕ Create New</b-nav-item>
+    </b-row>
     <!-- User Interface controls -->
     <b-row>
       <b-col lg="6" class="my-1">
@@ -98,6 +101,7 @@ export default {
           this.redirects = response.data.redirects;
         })
         .catch(error => {
+          // eslint-disable-next-line
           console.log(error);
           this.errored = true;
         })

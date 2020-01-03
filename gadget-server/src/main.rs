@@ -1,3 +1,4 @@
+#[cfg(feature = "postgres")]
 #[macro_use]
 extern crate diesel;
 #[macro_use]
@@ -6,12 +7,9 @@ extern crate clap;
 extern crate log;
 #[macro_use]
 extern crate prometheus;
-#[macro_use]
-extern crate rust_embed;
-
-use actix_web::{web, middleware, App, HttpResponse, HttpServer};
+use actix_web::{web, App, HttpResponse, HttpServer};
 use dotenv::dotenv;
-use flexi_logger::{colored_with_thread, LevelFilter, LogSpecBuilder, Logger};
+use flexi_logger::{LevelFilter, LogSpecBuilder, Logger};
 use futures_util::join;
 
 #[macro_export]
@@ -28,7 +26,7 @@ mod redirect;
 mod ui;
 
 #[actix_rt::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> Result<(), &'static str> {
     dotenv().ok();
 
     let matches = clap_app!(gadget =>
@@ -39,7 +37,8 @@ async fn main() -> std::io::Result<()> {
             (@arg warn: -w --warn +global "Only display warning messages")
             (@arg quite: -q --quite +global "Only error output will be displayed")
         )
-        (@arg listen_server: --listen +takes_value default_value("0.0.0.0:8080") "What port to listen on.")
+        (@arg ui_directory: --("ui-path") +takes_value env("UI_PATH") default_value("./public") "Where should the UI be served from?")
+        (@arg listen_server: --listen +takes_value default_value("0.0.0.0:8080") "What port to should the main app listen on?")
         (@arg listen_metrics: --("listen-metrics") +takes_value default_value("0.0.0.0:8081") "Where should the metrics listen on?")
         (@arg DB_CONNECTION: --("database-url") +required +takes_value env("DATABASE_URL") "URL Database")
     )
@@ -60,7 +59,7 @@ async fn main() -> std::io::Result<()> {
     builder.default(level_filter);
 
     Logger::with(builder.build())
-        .format(colored_with_thread)
+        .format(custom_log_format)
         .start()
         .unwrap();
 
@@ -69,6 +68,14 @@ async fn main() -> std::io::Result<()> {
             .value_of("DB_CONNECTION")
             .expect("To have a DB connection"),
     );
+
+    let ui_root_dir = matches.value_of("ui_directory").expect("To have UI Path");
+    let web_dir = match ui::WebDirectory::new(ui_root_dir.to_string()) {
+        Some(x) => x,
+        None => {
+            return Err("Unable to access UI directory")
+        }
+    };
 
     let main_server = HttpServer::new(move || {
         App::new()
@@ -92,7 +99,7 @@ async fn main() -> std::io::Result<()> {
             .route("/_gadget/.*", web::to(|| async { "404" }))
             .route("/{path:.*}", web::get().to(handlers::find_redirect))
             .data(backend.clone())
-            .wrap(middleware::Logger::default())
+            .data(web_dir.clone())
             .default_service(web::to(|| async { "404" }))
     })
     .bind(
@@ -119,4 +126,25 @@ async fn main() -> std::io::Result<()> {
 
     let (_main, _admin) = join!(main_server, admin_server);
     Ok(())
+}
+
+fn custom_log_format(
+    w: &mut dyn std::io::Write,
+    now: &mut  flexi_logger::DeferredNow,
+    record: & flexi_logger::Record,
+) -> Result<(), std::io::Error> {
+    use std::thread;
+    use flexi_logger::style;
+
+    let level = record.level();
+    write!(
+        w,
+        "[{}] T[{:?}] {} [{}:{}] {}",
+        style(level, now.now().format("%Y-%m-%d %H:%M:%S%.6f %:z")),
+        style(level, thread::current().name().unwrap_or("<unnamed>")),
+        style(level, level),
+        record.module_path().unwrap_or("<unnamed>"),
+        record.line().unwrap_or(0),
+        style(level, &record.args())
+    )
 }
