@@ -76,6 +76,8 @@ pub struct PrometheusMiddleware<S> {
     service: S,
 }
 
+type PinBox<T, E> = Pin<Box<dyn Future<Output = Result<T, E>>>>;
+
 impl<S, B> Service for PrometheusMiddleware<S>
 where
     S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
@@ -85,7 +87,7 @@ where
     type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
     type Error = Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+    type Future = PinBox<Self::Response, Self::Error>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.service.poll_ready(cx)

@@ -17,9 +17,9 @@ impl BackendContainer {
     pub fn new<T: ToString>(url: T) -> Self {
         let url = url.to_string();
         if url.starts_with("postgresql://") {
-            return make_postgres(url);
+            make_postgres(url)
         } else if url.starts_with("file://") {
-            return BackendContainer::Json(json::JsonBackend::new(url));
+            BackendContainer::Json(json::JsonBackend::new(url))
         } else {
             error!("Database path must start with either postgresql:// or file://");
             panic!();

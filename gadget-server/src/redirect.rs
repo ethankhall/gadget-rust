@@ -30,7 +30,7 @@ fn do_test() {
 
 impl AliasRedirect {
     fn new(alias: String, destination: String) -> Self {
-        let alias = if !alias.starts_with("/") {
+        let alias = if !alias.starts_with('/') {
             format!("/{}", alias)
         } else {
             alias
@@ -40,15 +40,15 @@ impl AliasRedirect {
 
         let mut parts: Vec<_> = destination.split(|x: char| x == '{' || x == '}').collect();
 
-        let last_open = destination.rfind("{");
-        let first_close = destination.find("}");
+        let last_open = destination.rfind('{');
+        let first_close = destination.find('}');
 
         let base = parts.remove(0);
 
         if last_open > first_close {
             warn!("Destination has mismatched params: `{}`", destination);
             destinations.push(destination.clone());
-        } else if parts.len() == 0 {
+        } else if parts.is_empty() {
             destinations.push(destination.clone());
         } else if parts.len() % 2 != 0 {
             warn!("Destination has missmatched `{{` | `}}`: `{}`", destination);
@@ -77,7 +77,7 @@ impl AliasRedirect {
 
 impl Redirect for AliasRedirect {
     fn get_destination(&self, input: &str) -> String {
-        let mut inputs: Vec<&str> = input.split(" ").collect();
+        let mut inputs: Vec<&str> = input.split(' ').collect();
         inputs.remove(0);
         let (size, destination) = if inputs.len() <= self.destinations.len() {
             (
@@ -101,7 +101,7 @@ impl Redirect for AliasRedirect {
             destination = destination.replace(&format!("${}", i), inputs.remove(0));
         }
 
-        return destination;
+        destination
     }
 
     fn matches(&self, alias: &str) -> bool {

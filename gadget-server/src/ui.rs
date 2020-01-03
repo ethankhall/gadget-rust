@@ -26,7 +26,7 @@ impl WebDirectory {
         Some(WebDirectory { path: Arc::new(dir) })
     }
 
-    fn get_path<'a>(&'a self) -> &'a str {
+    fn get_path(&self) -> &str {
         &self.path
     }
 }

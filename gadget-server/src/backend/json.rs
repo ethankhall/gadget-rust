@@ -25,7 +25,7 @@ impl JsonBackend {
                 storage: Arc::default(),
             };
             backend.save();
-            return backend;
+            backend
         } else {
             let json_file: JsonFile =
                 match serde_json::from_str(&std::fs::read_to_string(&file_path).unwrap()) {
@@ -36,11 +36,10 @@ impl JsonBackend {
                     }
                 };
 
-            let backend = JsonBackend {
+            JsonBackend {
                 path: file_path,
                 storage: Arc::new(RwLock::new(json_file.redirects)),
-            };
-            return backend;
+            }
         }
     }
 
@@ -48,7 +47,7 @@ impl JsonBackend {
         match self.storage.read() {
             Ok(vec) => {
                 let data = JsonFile {
-                    redirects: vec.iter().map(|x| x.clone()).collect(),
+                    redirects: vec.iter().cloned().collect(),
                 };
                 match std::fs::write(
                     self.path.clone(),
@@ -65,7 +64,7 @@ impl JsonBackend {
 
 impl super::Backend for JsonBackend {
     fn get_redirect(&self, redirect_ref: &str) -> RowChange<RedirectModel> {
-        return match self.storage.read() {
+        match self.storage.read() {
             Ok(vec) => {
                 if let Some(dest) = vec.iter().find(|redirect| {
                     redirect.public_ref == redirect_ref || redirect.alias == redirect_ref
@@ -76,13 +75,13 @@ impl super::Backend for JsonBackend {
                 }
             }
             Err(e) => RowChange::Err(format!("{}", e)),
-        };
+        }
     }
 
     fn create_redirect(&self, new_alias: &str, new_destination: &str) -> RowChange<RedirectModel> {
         let result = match self.storage.write() {
             Ok(mut vec) => {
-                if let Some(_) = vec.iter().find(|redirect| redirect.alias == new_alias) {
+                if vec.iter().any(|redirect| redirect.alias == new_alias) {
                     return RowChange::Err("Alias already exists".to_string());
                 }
 
@@ -145,7 +144,6 @@ impl super::Backend for JsonBackend {
             Ok(v) => {
                 let data = v
                 .get((begin)..(end))
-                .map(|x| x.clone())
                 .unwrap_or_default()
                 .to_vec();
                 RowChange::Value(data)
