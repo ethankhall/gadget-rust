@@ -16,8 +16,8 @@ jobs:
       run: docker build . --file Dockerfile --tag gadget
     - name: push to registry
       run: |
-        docker tag slack-pagerduty docker.pkg.github.com/ethankhall/gadget-rust/gadget:$(git rev-parse --short HEAD)
-        docker tag slack-pagerduty docker.pkg.github.com/ethankhall/gadget-rust/gadget:latest
+        docker tag gadget docker.pkg.github.com/ethankhall/gadget-rust/gadget:$(git rev-parse --short HEAD)
+        docker tag gadget docker.pkg.github.com/ethankhall/gadget-rust/gadget:latest
         docker push docker.pkg.github.com/ethankhall/gadget-rust/gadget:$(git rev-parse --short HEAD)
         docker push docker.pkg.github.com/ethankhall/gadget-rust/gadget:latest
 
