@@ -13,7 +13,7 @@ postgres = ["diesel", "r2d2"]
 serde = { version = "1.0", features = ["derive"]}
 diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"], optional = true  }
 clap = { version = "2.33" }
-dotenv = "0.9.0"
+dotenv = "0.15.0"
 chrono = { version = "0.4", features = ["serde"] }
 flexi_logger = { version = "0.14", features = ["specfile", "ziplogs", "colors"] }
 log = "0.4"
