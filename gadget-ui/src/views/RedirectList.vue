@@ -1,7 +1,7 @@
 <template>
     <b-container fluid v-if="redirects">
     <b-row>
-      <b-nav-item :to="{ name: 'create-redirect'}" exact exact-active-class="active">➕ Create New</b-nav-item>
+      <router-link :to="{ name: 'create-redirect'}" exact exact-active-class="active">➕ Create New</router-link>
     </b-row>
     <!-- User Interface controls -->
     <b-row>
