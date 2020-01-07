@@ -22,7 +22,7 @@ impl BackendContainer {
             BackendContainer::Json(json::JsonBackend::new(url))
         } else {
             error!("Database path must start with either postgresql:// or file://");
-            panic!();
+            std::process::exit(1);
         }
     }
 }
@@ -34,7 +34,8 @@ fn make_postgres(url: String) -> BackendContainer {
 
 #[cfg(not(feature = "postgres"))]
 fn make_postgres(_url: String) -> BackendContainer {
-    panic!("Process built without postgres support");
+    error!("Process built without postgres support");
+    std::process::exit(1);
 }
 
 pub enum RowChange<T> {
