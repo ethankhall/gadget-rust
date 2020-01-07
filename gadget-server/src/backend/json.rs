@@ -1,5 +1,7 @@
 use super::{models::RedirectModel, RowChange};
 use serde::{Deserialize, Serialize};
+use url::{Url};
+
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock},
@@ -17,7 +19,14 @@ struct JsonFile {
 
 impl JsonBackend {
     pub fn new<S: ToString>(path: S) -> Self {
-        let file_path = PathBuf::from(&path.to_string());
+        let path = match Url::parse(&path.to_string()) {
+            Ok(url) => url.path().to_string(),
+            Err(e) => {
+                panic!("Unable to parse input {:?}", e);
+            }
+        };
+
+        let file_path = PathBuf::from(&path);
         if !file_path.exists() {
             warn!("{:?} does not exist, creating new file.", file_path);
             let backend = JsonBackend {
@@ -142,6 +151,7 @@ impl super::Backend for JsonBackend {
         let end: usize = begin + limit;
         match self.storage.read() {
             Ok(v) => {
+                let end = std::cmp::min(end, v.len());
                 let data = v
                 .get((begin)..(end))
                 .unwrap_or_default()
