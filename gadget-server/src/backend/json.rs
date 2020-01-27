@@ -1,6 +1,6 @@
 use super::{models::RedirectModel, RowChange};
 use serde::{Deserialize, Serialize};
-use url::{Url};
+use url::Url;
 
 use std::{
     path::PathBuf,
@@ -152,12 +152,9 @@ impl super::Backend for JsonBackend {
         match self.storage.read() {
             Ok(v) => {
                 let end = std::cmp::min(end, v.len());
-                let data = v
-                .get((begin)..(end))
-                .unwrap_or_default()
-                .to_vec();
+                let data = v.get((begin)..(end)).unwrap_or_default().to_vec();
                 RowChange::Value(data)
-            },
+            }
             Err(e) => RowChange::Err(e.to_string()),
         }
     }

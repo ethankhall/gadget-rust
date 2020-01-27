@@ -3,7 +3,6 @@ use prometheus::{Counter, CounterVec, Encoder, HistogramVec, TextEncoder};
 
 use warp::http::header::CONTENT_TYPE;
 
-
 lazy_static! {
     static ref HTTP_COUNTER: Counter = register_counter!(opts!(
         "http_requests_total",
@@ -31,7 +30,11 @@ pub fn metrics_endpoint() -> impl warp::Reply {
     let mut buffer = vec![];
     encoder.encode(&metric_families, &mut buffer).unwrap();
 
-    Ok(warp::reply::with_header(buffer, CONTENT_TYPE, encoder.format_type()))
+    Ok(warp::reply::with_header(
+        buffer,
+        CONTENT_TYPE,
+        encoder.format_type(),
+    ))
 }
 
 pub struct Metrics;
@@ -43,14 +46,17 @@ impl Default for Metrics {
 }
 
 pub fn track_status(info: warp::filters::log::Info) {
-
     let status = info.status().as_u16();
-    let path =  info.path();
+    let path = info.path();
     let method = info.method();
 
     HTTP_COUNTER.inc();
-    HTTP_RESPONSE_CODES_BY_PATH.with_label_values(&[&status.to_string(), path]).inc();
-    HTTP_REQ_HISTOGRAM.with_label_values(&[&method.as_str(), path]).observe(duration_to_seconds(info.elapsed()));
+    HTTP_RESPONSE_CODES_BY_PATH
+        .with_label_values(&[&status.to_string(), path])
+        .inc();
+    HTTP_REQ_HISTOGRAM
+        .with_label_values(&[&method.as_str(), path])
+        .observe(duration_to_seconds(info.elapsed()));
 }
 
 fn duration_to_seconds(d: std::time::Duration) -> f64 {

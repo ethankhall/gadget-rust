@@ -6,7 +6,7 @@ use warp::http::header::CONTENT_TYPE;
 
 #[derive(Clone)]
 pub struct WebDirectory {
-    path: Arc<String>
+    path: Arc<String>,
 }
 
 impl WebDirectory {
@@ -23,8 +23,15 @@ impl WebDirectory {
             return None;
         }
 
-        let dir = root_path.canonicalize().unwrap().to_str().unwrap().to_string();
-        Some(WebDirectory { path: Arc::new(dir) })
+        let dir = root_path
+            .canonicalize()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        Some(WebDirectory {
+            path: Arc::new(dir),
+        })
     }
 
     fn get_path(&self) -> &str {
@@ -32,7 +39,10 @@ impl WebDirectory {
     }
 }
 
-pub async fn serve_embedded(path: warp::filters::path::Tail, web_dir: Arc<WebDirectory>) -> Result<warp::reply::Response, std::convert::Infallible> {
+pub async fn serve_embedded(
+    path: warp::filters::path::Tail,
+    web_dir: Arc<WebDirectory>,
+) -> Result<warp::reply::Response, std::convert::Infallible> {
     let mut path = path.as_str();
 
     if path == "" {
@@ -67,9 +77,18 @@ pub async fn serve_embedded(path: warp::filters::path::Tail, web_dir: Arc<WebDir
     };
 
     let body = hyper::Body::from(body);
-    Ok(warp::http::Response::builder().header(CONTENT_TYPE, from_path(file_path).first_or_octet_stream().as_ref()).body(body).unwrap())
+    Ok(warp::http::Response::builder()
+        .header(
+            CONTENT_TYPE,
+            from_path(file_path).first_or_octet_stream().as_ref(),
+        )
+        .body(body)
+        .unwrap())
 }
 
 fn not_found() -> Result<warp::reply::Response, std::convert::Infallible> {
-    return Ok(warp::http::Response::builder().status(warp::http::StatusCode::NOT_FOUND).body(hyper::Body::default()).unwrap());
+    return Ok(warp::http::Response::builder()
+        .status(warp::http::StatusCode::NOT_FOUND)
+        .body(hyper::Body::default())
+        .unwrap());
 }
