@@ -1,18 +1,8 @@
-use std::pin::Pin;
-use std::task::{Context, Poll};
-
 use lazy_static::lazy_static;
 use prometheus::{Counter, CounterVec, Encoder, HistogramVec, TextEncoder};
 
-use actix_service::{Service, Transform};
-use actix_web::{
-    dev::{HttpResponseBuilder, ServiceRequest, ServiceResponse},
-    http::{StatusCode, header::CONTENT_TYPE},
-    Error, HttpResponse,
-};
+use warp::http::header::CONTENT_TYPE;
 
-use futures::future::{ok, Ready};
-use futures::Future;
 
 lazy_static! {
     static ref HTTP_COUNTER: Counter = register_counter!(opts!(
@@ -35,15 +25,13 @@ lazy_static! {
     .unwrap();
 }
 
-pub fn metrics_endpoint() -> HttpResponse {
+pub fn metrics_endpoint() -> impl warp::Reply {
     let encoder = TextEncoder::new();
     let metric_families = prometheus::gather();
     let mut buffer = vec![];
     encoder.encode(&metric_families, &mut buffer).unwrap();
 
-    HttpResponseBuilder::new(StatusCode::OK)
-        .set_header(CONTENT_TYPE, encoder.format_type())
-        .body(buffer)
+    Ok(warp::reply::with_header(buffer, CONTENT_TYPE, encoder.format_type()))
 }
 
 pub struct Metrics;
@@ -54,71 +42,18 @@ impl Default for Metrics {
     }
 }
 
-impl<S, B> Transform<S> for Metrics
-where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-    S::Future: 'static,
-    B: 'static,
-{
-    type Request = ServiceRequest;
-    type Response = ServiceResponse<B>;
-    type Error = Error;
-    type InitError = ();
-    type Transform = PrometheusMiddleware<S>;
-    type Future = Ready<Result<Self::Transform, Self::InitError>>;
+pub fn track_status(info: warp::filters::log::Info) {
 
-    fn new_transform(&self, service: S) -> Self::Future {
-        ok(PrometheusMiddleware { service })
-    }
+    let status = info.status().as_u16();
+    let path =  info.path();
+    let method = info.method();
+
+    HTTP_COUNTER.inc();
+    HTTP_RESPONSE_CODES_BY_PATH.with_label_values(&[&status.to_string(), path]).inc();
+    HTTP_REQ_HISTOGRAM.with_label_values(&[&method.as_str(), path]).observe(duration_to_seconds(info.elapsed()));
 }
 
-pub struct PrometheusMiddleware<S> {
-    service: S,
-}
-
-type PinBox<T, E> = Pin<Box<dyn Future<Output = Result<T, E>>>>;
-
-impl<S, B> Service for PrometheusMiddleware<S>
-where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-    S::Future: 'static,
-    B: 'static,
-{
-    type Request = ServiceRequest;
-    type Response = ServiceResponse<B>;
-    type Error = Error;
-    type Future = PinBox<Self::Response, Self::Error>;
-
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        self.service.poll_ready(cx)
-    }
-
-    fn call(&mut self, req: ServiceRequest) -> Self::Future {
-        HTTP_COUNTER.inc();
-
-        let (path, hist) = {
-            let method = req.method();
-            let path = req.uri().path();
-
-            (
-                path.to_string(),
-                HTTP_REQ_HISTOGRAM
-                    .with_label_values(&[&method.to_string(), path])
-                    .start_timer(),
-            )
-        };
-
-        let fut = self.service.call(req);
-
-        Box::pin(async move {
-            let res = fut.await?;
-
-            hist.observe_duration();
-            HTTP_RESPONSE_CODES_BY_PATH
-                .with_label_values(&[&res.status().as_u16().to_string(), &path])
-                .inc();
-
-            Ok(res)
-        })
-    }
+fn duration_to_seconds(d: std::time::Duration) -> f64 {
+    let nanos = f64::from(d.subsec_nanos()) / 1e9;
+    d.as_secs() as f64 + nanos
 }

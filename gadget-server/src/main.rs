@@ -7,7 +7,11 @@ extern crate clap;
 extern crate log;
 #[macro_use]
 extern crate prometheus;
-use actix_web::{web, App, HttpResponse, HttpServer};
+
+use std::sync::Arc;
+use std::net::SocketAddr;
+
+use warp::Filter;
 use dotenv::dotenv;
 use flexi_logger::{LevelFilter, LogSpecBuilder, Logger};
 use futures_util::join;
@@ -25,7 +29,7 @@ mod handlers;
 mod redirect;
 mod ui;
 
-#[actix_rt::main]
+#[tokio::main]
 async fn main() -> Result<(), &'static str> {
     dotenv().ok();
 
@@ -69,6 +73,8 @@ async fn main() -> Result<(), &'static str> {
             .expect("To have a DB connection"),
     );
 
+    let backend = Arc::new(backend);
+
     let ui_root_dir = matches.value_of("ui_directory").expect("To have UI Path");
     let web_dir = match ui::WebDirectory::new(ui_root_dir.to_string()) {
         Some(x) => x,
@@ -76,56 +82,50 @@ async fn main() -> Result<(), &'static str> {
             return Err("Unable to access UI directory")
         }
     };
+    let web_dir = Arc::new(web_dir);
 
-    let main_server = HttpServer::new(move || {
-        App::new()
-            .wrap(admin::Metrics::default())
-            .service(web::resource("favicon.ico").to(handlers::favicon))
-            .service(
-                web::resource("/_gadget/api/redirect")
-                    .name("make_redirect")
-                    .route(web::post().to(handlers::new_redirect_json))
-                    .route(web::get().to(handlers::list_redirects)),
-            )
-            .service(
-                web::resource("/_gadget/api/redirect/{id}")
-                    .name("change_redirect")
-                    .route(web::delete().to(handlers::delete_redirect))
-                    .route(web::put().to(handlers::update_redirect))
-                    .route(web::get().to(handlers::get_redirect)),
-            )
-            .route("/_gadget/ui", web::get().to(ui::serve_embedded))
-            .route("/_gadget/ui/{filename:.*}", web::get().to(ui::serve_embedded))
-            .route("/_gadget/.*", web::to(|| async { "404" }))
-            .route("/{path:.*}", web::get().to(handlers::find_redirect))
-            .data(backend.clone())
-            .data(web_dir.clone())
-            .default_service(web::to(|| async { "404" }))
-    })
-    .bind(
-        matches
-            .value_of("listen_server")
-            .expect("To be able to get listen address"),
-    )
-    .expect("to be able to bind to http address")
-    .run();
+    let main_server = warp::path!("favicon.ico").and_then(handlers::favicon)
+        .or(warp::path!("_gadget" / "api" / "redirect").and(warp::get()).and(with_context(backend.clone())).and_then(handlers::list_redirects))
+        .or(warp::path!("_gadget" / "api" / "redirect").and(warp::post()).and(handlers::json_body()).and(with_context(backend.clone())).and_then(handlers::new_redirect_json))
+        .or(warp::path!("_gadget" / "api" / "redirect" / String ).and(warp::get()).and(with_context(backend.clone())).and_then(handlers::get_redirect))
+        .or(warp::path!("_gadget" / "api" / "redirect" / String ).and(warp::delete()).and(with_context(backend.clone())).and_then(handlers::delete_redirect))
+        .or(warp::path!("_gadget" / "api" / "redirect" / String ).and(warp::put()).and(handlers::json_body()).and(with_context(backend.clone())).and_then(handlers::update_redirect))
+        .or(warp::path("_gadget").and(warp::path("ui")).and(warp::path::tail()).and(warp::get()).and(with_web_dir(web_dir)).and_then(ui::serve_embedded))
+        .or(warp::get().and(warp::path::tail()).and(with_context(backend.clone())).and_then(handlers::find_redirect))
+        .or(warp::any().map(|| handlers::ResponseMessage::from("not found").into_raw_response(warp::http::StatusCode::NOT_FOUND)))
+        .with(warp::log("api"))
+        .with(warp::log::custom(admin::track_status));
 
-    let admin_server = HttpServer::new(|| {
-        App::new()
-            .route("/metrics", web::get().to(admin::metrics_endpoint))
-            .route("/status", web::get().to(|| HttpResponse::from("OK")))
-            .default_service(web::to(|| async { "404" }))
-    })
-    .bind(
-        matches
-            .value_of("listen_metrics")
-            .expect("To be able to get listen address"),
-    )
-    .expect("to be able to bind to metrics address")
-    .run();
+    let listen_server: SocketAddr = matches
+        .value_of("listen_server")
+        .expect("To be able to get listen_server address")
+        .parse()
+        .expect("Unable to parse listen_server");
+
+    let main_server = warp::serve(main_server).run(listen_server);
+
+    let admin_server = warp::path("metrics").map(||admin::metrics_endpoint())
+        .or(warp::path!("status").map(|| handlers::ResponseMessage::from("OK").into_raw_response(warp::http::StatusCode::OK)));
+
+    let listen_metrics: SocketAddr = matches
+        .value_of("listen_metrics")
+        .expect("To be able to get listen_metrics address")
+        .parse()
+        .expect("Unable to parse listen_metrics");
+
+    let admin_server = warp::serve(admin_server).run(listen_metrics);
 
     let (_main, _admin) = join!(main_server, admin_server);
+
     Ok(())
+}
+
+fn with_context(context: Arc<handlers::Context>) -> impl Filter<Extract = (Arc<handlers::Context>,), Error = std::convert::Infallible> + Clone {
+    warp::any().map(move || context.clone())
+}
+
+fn with_web_dir(web_dir: Arc<ui::WebDirectory>) -> impl Filter<Extract = (Arc<ui::WebDirectory>,), Error = std::convert::Infallible> + Clone {
+    warp::any().map(move || web_dir.clone())
 }
 
 fn custom_log_format(
