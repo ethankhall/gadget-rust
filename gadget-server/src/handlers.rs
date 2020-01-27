@@ -229,9 +229,9 @@ pub async fn find_redirect(
             .unwrap()),
         RowChange::Err(e) => {
             warn!("Unable to get redirect: {:?}", e);
-            return ResponseMessage::from("Unable to get redirect")
+            ResponseMessage::from("Unable to get redirect")
                 .into_response(StatusCode::INTERNAL_SERVER_ERROR)
-                .map(|x| x.into_response());
+                .map(|x| x.into_response())
         }
     }
 }

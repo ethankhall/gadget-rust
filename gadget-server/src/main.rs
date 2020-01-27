@@ -132,7 +132,7 @@ async fn main() -> Result<(), &'static str> {
     let main_server = warp::serve(main_server).run(listen_server);
 
     let admin_server = warp::path("metrics")
-        .map(|| admin::metrics_endpoint())
+        .map(admin::metrics_endpoint)
         .or(warp::path!("status").map(|| {
             handlers::ResponseMessage::from("OK").into_raw_response(warp::http::StatusCode::OK)
         }));

@@ -87,8 +87,8 @@ pub async fn serve_embedded(
 }
 
 fn not_found() -> Result<warp::reply::Response, std::convert::Infallible> {
-    return Ok(warp::http::Response::builder()
+    Ok(warp::http::Response::builder()
         .status(warp::http::StatusCode::NOT_FOUND)
         .body(hyper::Body::default())
-        .unwrap());
+        .unwrap())
 }
