@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
-use r2d2::{Pool};
+use r2d2::Pool;
 
 use super::models::*;
 use super::schema::redirects::dsl::*;
@@ -53,7 +53,9 @@ impl PostgresBackend {
             .test_on_check_out(true)
             .build(manager)
             .unwrap();
-        PostgresBackend { pool: Arc::new(pool) }
+        PostgresBackend {
+            pool: Arc::new(pool),
+        }
     }
 }
 
@@ -83,7 +85,9 @@ impl super::Backend for PostgresBackend {
             .filter(alias.eq(redirect_ref))
             .or_filter(public_ref.eq(redirect_ref));
 
-        diesel::delete(filter).execute(&self.pool.get().unwrap()).into()
+        diesel::delete(filter)
+            .execute(&self.pool.get().unwrap())
+            .into()
     }
 
     fn update_redirect(&self, redirect_ref: &str, new_dest: &str) -> RowChange<usize> {
