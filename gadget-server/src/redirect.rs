@@ -6,9 +6,21 @@ pub trait Redirect {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+struct DestPart {
+    number_of_components: usize,
+    dest: String
+}
+
+impl DestPart {
+    fn new(number_of_components: usize, dest: String) -> Self {
+        DestPart { number_of_components, dest }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct AliasRedirect {
     alias: String,
-    destinations: Vec<String>,
+    destinations: Vec<DestPart>,
 }
 
 impl From<RedirectModel> for AliasRedirect {
@@ -44,27 +56,30 @@ impl AliasRedirect {
         let first_close = destination.find('}');
 
         let base = parts.remove(0);
+        let mut number_of_components = 0;
 
         if last_open > first_close {
             warn!("Destination has mismatched params: `{}`", destination);
-            destinations.push(destination.clone());
+            destinations.push(DestPart::new(number_of_components, destination.clone()));
         } else if parts.is_empty() {
-            destinations.push(destination.clone());
+            destinations.push(DestPart::new(number_of_components, destination.clone()));
         } else if parts.len() % 2 != 0 {
             warn!("Destination has missmatched `{{` | `}}`: `{}`", destination);
-            destinations.push(destination.clone());
+            destinations.push(DestPart::new(number_of_components, destination.clone()));
         } else {
             let mut pre = s!("");
             let mut post = s!("");
 
-            destinations.push(s!(base));
+            destinations.push(DestPart::new(number_of_components, s!(base)));
+            number_of_components += 1;
 
             while !parts.is_empty() {
                 let size = parts.len() - 1;
                 post = format!("{}{}", parts.remove(size), post);
                 pre = format!("{}{}", pre, parts.remove(0));
 
-                destinations.push(format!("{}{}{}", base, pre, post));
+                destinations.push(DestPart::new(number_of_components, format!("{}{}{}", base, pre, post)));
+                number_of_components += 1;
             }
         }
 
@@ -79,26 +94,21 @@ impl Redirect for AliasRedirect {
     fn get_destination(&self, input: &str) -> String {
         let mut inputs: Vec<&str> = input.split(' ').collect();
         inputs.remove(0);
-        let (size, destination) = if inputs.len() <= self.destinations.len() {
-            (
-                inputs.len(),
-                s!(self.destinations.get(inputs.len()).unwrap()),
-            )
+        
+        let part = if inputs.len() <= self.destinations.len() {
+            self.destinations.get(inputs.len()).unwrap()
         } else {
-            (
-                self.destinations.len(),
-                format!(
-                    "{} {}",
-                    self.destinations.last().unwrap(),
-                    inputs[inputs.len()..].join(" ")
-                ),
-            )
+            self.destinations.last().unwrap()
         };
 
-        let mut destination = s!(destination);
+        let mut destination = part.dest.clone();
 
-        for i in 1..=size {
+        for i in 1..=part.number_of_components {
             destination = destination.replace(&format!("${}", i), inputs.remove(0));
+        }
+
+        if !inputs.is_empty() {
+            destination = format!("{} {}", destination, inputs.join(" "));
         }
 
         destination
@@ -107,4 +117,22 @@ impl Redirect for AliasRedirect {
     fn matches(&self, alias: &str) -> bool {
         self.alias == alias.to_lowercase()
     }
+}
+
+#[test]
+fn long_url_with_spaces() {
+    let _ = env_logger::builder().is_test(true).try_init();
+
+    let alias = AliasRedirect::new(s!("google"), s!("https://duckduckgo.com/{?q=$1}"));
+
+    assert_eq!("https://duckduckgo.com/?q=let me google that for you", &alias.get_destination("google let me google that for you"));
+}
+
+#[test]
+fn with_just_query() {
+    let _ = env_logger::builder().is_test(true).try_init();
+
+    let alias = AliasRedirect::new(s!("google"), s!("https://duckduckgo.com/{?q=$1}"));
+
+    assert_eq!("https://duckduckgo.com/", &alias.get_destination("google"));
 }
