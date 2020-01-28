@@ -212,8 +212,21 @@ pub async fn find_redirect(
     path: warp::filters::path::Tail,
     context: Arc<Context>,
 ) -> Result<warp::reply::Response, Infallible> {
-    let info = path.as_str();
-    match context.backend.get_redirect(&info) {
+    let info = path.as_str().replace("%20", " ");
+
+    let redirect_ref: Vec<&str> = info.split(" ").collect();
+    let redirect_ref = match redirect_ref.first() {
+        None => {
+            return Ok(warp::http::Response::builder()
+                .status(StatusCode::TEMPORARY_REDIRECT)
+                .header(LOCATION, "/_gadget/ui")
+                .body(hyper::Body::empty())
+                .unwrap());
+        }
+        Some(value) => value,
+    };
+
+    match context.backend.get_redirect(redirect_ref) {
         RowChange::Value(value) => {
             let redirect = AliasRedirect::from(value);
             Ok(warp::http::Response::builder()
