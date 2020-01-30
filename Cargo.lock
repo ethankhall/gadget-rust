@@ -256,7 +256,7 @@ dependencies = [
 
 [[package]]
 name = "flexi_logger"
-version = "0.14.5"
+version = "0.14.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "chrono 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -403,7 +403,7 @@ dependencies = [
  "diesel 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "dotenv 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "flexi_logger 0.14.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flexi_logger 0.14.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures-util 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1638,7 +1638,7 @@ dependencies = [
 "checksum fake-simd 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
 "checksum filetime 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "1ff6d4dab0aa0c8e6346d46052e93b13a16cf847b54ed357087c35011048cc7d"
 "checksum flate2 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)" = "6bd6d6f4752952feb71363cffc9ebac9411b75b87c6ab6058c40c8900cf43c0f"
-"checksum flexi_logger 0.14.5 (registry+https://github.com/rust-lang/crates.io-index)" = "a13ea6b8a4debecf47bf3966d56db0e21366bc3a3649ba159e1a9e6fdd36a4f4"
+"checksum flexi_logger 0.14.6 (registry+https://github.com/rust-lang/crates.io-index)" = "39c43e04ebd68f9695e0e2e593da77c01fddab56a6b4fea1467bb04621d0783a"
 "checksum fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)" = "2fad85553e09a6f881f739c29f0b00b0f01357c743266d478b68951ce23285f3"
 "checksum fsevent 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5ab7d1bd1bd33cc98b0889831b72da23c0aa4df9cec7e0702f46ecea04b35db6"
 "checksum fsevent-sys 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f41b048a94555da0f42f1d632e2e19510084fb8e303b0daa2816e733fb3644a0"
