@@ -2,7 +2,7 @@
 
 Gadget is a link shortener.
 
-So you can do something like `gto.cx/test` and it will take you to `google.com`.
+So you can do something like `gto.cx/google` and it will take you to `duckduckgo.com`. ;-)
 
 There is an expression language that can be used for things like `gto.cx/google this is a long query`
 
@@ -53,7 +53,7 @@ Caddy has some excellent [documentation](https://github.com/caddyserver/caddy/tr
 
 The following file will give a reasonabaly secure public internet
 deployment. This is a simple config, and could be made way more 
-complicated if a more complicated auth was used.
+complete/ready for large scale deployment when adding auth.
 
 ```text
 #/etc/caddy/Caddyfile
