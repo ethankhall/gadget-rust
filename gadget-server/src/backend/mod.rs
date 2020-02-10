@@ -16,9 +16,19 @@ pub enum RowChange<T> {
 pub trait Backend {
     fn get_redirect(&self, redirect_ref: &str) -> RowChange<RedirectModel>;
 
-    fn create_redirect(&self, new_alias: &str, new_destination: &str, username: &str) -> RowChange<RedirectModel>;
+    fn create_redirect(
+        &self,
+        new_alias: &str,
+        new_destination: &str,
+        username: &str,
+    ) -> RowChange<RedirectModel>;
 
-    fn update_redirect(&self, redirect_ref: &str, new_dest: &str, username: &str) -> RowChange<usize>;
+    fn update_redirect(
+        &self,
+        redirect_ref: &str,
+        new_dest: &str,
+        username: &str,
+    ) -> RowChange<usize>;
 
     fn delete_redirect(&self, redirect_ref: &str) -> RowChange<usize>;
 
@@ -27,7 +37,6 @@ pub trait Backend {
 
 #[cfg(not(feature = "postgres"))]
 pub fn make_backend(url: String) -> Result<impl Backend, String> {
-    let url = url.to_string();
     if url.starts_with("file://") {
         Ok(json::JsonBackend::new(url))
     } else {
@@ -37,7 +46,6 @@ pub fn make_backend(url: String) -> Result<impl Backend, String> {
 
 #[cfg(feature = "postgres")]
 pub fn make_backend(url: String) -> impl Backend {
-    let url = url.to_string();
     if url.starts_with("file://") {
         postgres::PostgresBackend::new(url)
     } else {

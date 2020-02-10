@@ -2,7 +2,12 @@ use std::convert::Infallible;
 use std::sync::Arc;
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use warp::{http::header::LOCATION, http::{HeaderMap, StatusCode}, reply::Reply, Filter};
+use warp::{
+    http::header::LOCATION,
+    http::{HeaderMap, StatusCode},
+    reply::Reply,
+    Filter,
+};
 
 use crate::backend::{Backend, RedirectModel, RowChange};
 use crate::redirect::{AliasRedirect, Redirect};
@@ -12,13 +17,11 @@ pub struct RequestContext<T: Backend> {
     backend: Arc<T>,
 }
 
-unsafe impl <T> std::marker::Send for RequestContext<T> where T: Backend {
-}
+unsafe impl<T> std::marker::Send for RequestContext<T> where T: Backend {}
 
-unsafe impl <T> std::marker::Sync for RequestContext<T> where T: Backend {
-}
+unsafe impl<T> std::marker::Sync for RequestContext<T> where T: Backend {}
 
-impl <T: Backend> RequestContext<T> {
+impl<T: Backend> RequestContext<T> {
     pub fn new(backend: T) -> Self {
         RequestContext {
             backend: Arc::new(backend),
@@ -101,7 +104,10 @@ pub async fn favicon() -> Result<impl warp::Reply, Infallible> {
 pub async fn delete_redirect<T>(
     path: String,
     context: Arc<RequestContext<T>>,
-) -> Result<impl warp::Reply, Infallible> where T: Backend {
+) -> Result<impl warp::Reply, Infallible>
+where
+    T: Backend,
+{
     let resp = context.backend.delete_redirect(&path);
 
     match resp {
@@ -126,7 +132,10 @@ pub async fn new_redirect_json<T>(
     info: NewRedirect,
     user: UserDetails,
     context: Arc<RequestContext<T>>,
-) -> Result<impl warp::Reply, Infallible> where T: Backend  {
+) -> Result<impl warp::Reply, Infallible>
+where
+    T: Backend,
+{
     info!("Creating redirect {} => {}", info.alias, info.destination);
     match context
         .backend
@@ -157,8 +166,13 @@ pub async fn update_redirect<T>(
     dest: UpdateRedirect,
     user: UserDetails,
     context: Arc<RequestContext<T>>,
-) -> Result<impl warp::Reply, Infallible> where T: Backend  {
-    let resp = context.backend.update_redirect(&info, &dest.destination, &user.username);
+) -> Result<impl warp::Reply, Infallible>
+where
+    T: Backend,
+{
+    let resp = context
+        .backend
+        .update_redirect(&info, &dest.destination, &user.username);
 
     match resp {
         RowChange::NotFound => {
@@ -173,7 +187,12 @@ pub async fn update_redirect<T>(
     }
 }
 
-pub async fn list_redirects<T>(context: Arc<RequestContext<T>>) -> Result<impl warp::Reply, Infallible> where T: Backend  {
+pub async fn list_redirects<T>(
+    context: Arc<RequestContext<T>>,
+) -> Result<impl warp::Reply, Infallible>
+where
+    T: Backend,
+{
     let resp = match context.backend.get_all(0, 10000) {
         RowChange::Value(v) => {
             let data: Vec<ApiRedirect> = v.into_iter().map(|x| x.into()).collect();
@@ -196,7 +215,10 @@ pub async fn list_redirects<T>(context: Arc<RequestContext<T>>) -> Result<impl w
 pub async fn get_redirect<T>(
     info: String,
     context: Arc<RequestContext<T>>,
-) -> Result<impl warp::Reply, Infallible> where T: Backend  {
+) -> Result<impl warp::Reply, Infallible>
+where
+    T: Backend,
+{
     match context.backend.get_redirect(&info) {
         RowChange::Value(value) => {
             let redirect: ApiRedirect = value.into();
@@ -219,10 +241,13 @@ pub async fn get_redirect<T>(
 pub async fn find_redirect<T>(
     path: warp::filters::path::Tail,
     context: Arc<RequestContext<T>>,
-) -> Result<warp::reply::Response, Infallible> where T: Backend  {
+) -> Result<warp::reply::Response, Infallible>
+where
+    T: Backend,
+{
     let info = path.as_str().replace("%20", " ");
 
-    let redirect_ref: Vec<&str> = info.split(" ").collect();
+    let redirect_ref: Vec<&str> = info.split(' ').collect();
     let redirect_ref = match redirect_ref.first() {
         None => {
             return Ok(warp::http::Response::builder()
@@ -258,19 +283,31 @@ pub async fn find_redirect<T>(
 }
 
 pub struct UserDetails {
-    pub username: String
+    pub username: String,
 }
 
 pub fn extract_user() -> impl Filter<Extract = (UserDetails,), Error = Infallible> + Clone {
     warp::filters::header::headers_cloned().map(|headers: HeaderMap| {
         if headers.contains_key("Token-Claim-User") {
             let caddy_jwt_username = headers.get("Token-Claim-User");
-            UserDetails { username: caddy_jwt_username.map(|x| x.to_str().unwrap()).map(|x| x.to_string()).unwrap_or_else(|| "unknown".to_string()) }
+            UserDetails {
+                username: caddy_jwt_username
+                    .map(|x| x.to_str().unwrap())
+                    .map(|x| x.to_string())
+                    .unwrap_or_else(|| "unknown".to_string()),
+            }
         } else if headers.contains_key("x-amzn-oidc-identity") {
             let aws_identity = headers.get("x-amzn-oidc-identity");
-            UserDetails { username: aws_identity.map(|x| x.to_str().unwrap()).map(|x| x.to_string()).unwrap_or_else(|| "unknown".to_string()) }
+            UserDetails {
+                username: aws_identity
+                    .map(|x| x.to_str().unwrap())
+                    .map(|x| x.to_string())
+                    .unwrap_or_else(|| "unknown".to_string()),
+            }
         } else {
-            UserDetails { username: "unknown".to_string() }
+            UserDetails {
+                username: "unknown".to_string(),
+            }
         }
     })
 }

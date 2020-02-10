@@ -165,7 +165,10 @@ async fn main() -> Result<(), &'static str> {
 
 fn with_context<T>(
     context: Arc<handlers::RequestContext<T>>,
-) -> impl Filter<Extract = (Arc<handlers::RequestContext<T>>,), Error = std::convert::Infallible> + Clone where T: Backend {
+) -> impl Filter<Extract = (Arc<handlers::RequestContext<T>>,), Error = std::convert::Infallible> + Clone
+where
+    T: Backend,
+{
     warp::any().map(move || context.clone())
 }
 
