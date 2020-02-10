@@ -7,37 +7,6 @@ mod schema;
 
 pub use models::RedirectModel;
 
-pub enum BackendContainer {
-    #[cfg(feature = "postgres")]
-    Postgres(postgres::PostgresBackend),
-    Json(json::JsonBackend),
-}
-
-impl BackendContainer {
-    pub fn new<T: ToString>(url: T) -> Self {
-        let url = url.to_string();
-        if url.starts_with("postgresql://") {
-            make_postgres(url)
-        } else if url.starts_with("file://") {
-            BackendContainer::Json(json::JsonBackend::new(url))
-        } else {
-            error!("Database path must start with either postgresql:// or file://");
-            std::process::exit(1);
-        }
-    }
-}
-
-#[cfg(feature = "postgres")]
-fn make_postgres(url: String) -> BackendContainer {
-    BackendContainer::Postgres(postgres::PostgresBackend::new(url))
-}
-
-#[cfg(not(feature = "postgres"))]
-fn make_postgres(_url: String) -> BackendContainer {
-    error!("Process built without postgres support");
-    std::process::exit(1);
-}
-
 pub enum RowChange<T> {
     NotFound,
     Value(T),
@@ -47,53 +16,32 @@ pub enum RowChange<T> {
 pub trait Backend {
     fn get_redirect(&self, redirect_ref: &str) -> RowChange<RedirectModel>;
 
-    fn create_redirect(&self, new_alias: &str, new_destination: &str) -> RowChange<RedirectModel>;
+    fn create_redirect(&self, new_alias: &str, new_destination: &str, username: &str) -> RowChange<RedirectModel>;
 
-    fn update_redirect(&self, redirect_ref: &str, new_dest: &str) -> RowChange<usize>;
+    fn update_redirect(&self, redirect_ref: &str, new_dest: &str, username: &str) -> RowChange<usize>;
 
     fn delete_redirect(&self, redirect_ref: &str) -> RowChange<usize>;
 
     fn get_all(&self, page: u64, limit: usize) -> RowChange<Vec<RedirectModel>>;
 }
 
-impl Backend for BackendContainer {
-    fn get_redirect(&self, redirect_ref: &str) -> RowChange<RedirectModel> {
-        match self {
-            #[cfg(feature = "postgres")]
-            BackendContainer::Postgres(p) => p.get_redirect(redirect_ref),
-            BackendContainer::Json(j) => j.get_redirect(redirect_ref),
-        }
+#[cfg(not(feature = "postgres"))]
+pub fn make_backend(url: String) -> Result<impl Backend, String> {
+    let url = url.to_string();
+    if url.starts_with("file://") {
+        Ok(json::JsonBackend::new(url))
+    } else {
+        Err("Database path must start file://".to_string())
     }
+}
 
-    fn create_redirect(&self, new_alias: &str, new_destination: &str) -> RowChange<RedirectModel> {
-        match self {
-            #[cfg(feature = "postgres")]
-            BackendContainer::Postgres(p) => p.create_redirect(new_alias, new_destination),
-            BackendContainer::Json(j) => j.create_redirect(new_alias, new_destination),
-        }
-    }
-
-    fn delete_redirect(&self, redirect_ref: &str) -> RowChange<usize> {
-        match self {
-            #[cfg(feature = "postgres")]
-            BackendContainer::Postgres(p) => p.delete_redirect(redirect_ref),
-            BackendContainer::Json(j) => j.delete_redirect(redirect_ref),
-        }
-    }
-
-    fn update_redirect(&self, redirect_ref: &str, new_dest: &str) -> RowChange<usize> {
-        match self {
-            #[cfg(feature = "postgres")]
-            BackendContainer::Postgres(p) => p.update_redirect(redirect_ref, new_dest),
-            BackendContainer::Json(j) => j.update_redirect(redirect_ref, new_dest),
-        }
-    }
-
-    fn get_all(&self, page: u64, limit: usize) -> RowChange<Vec<RedirectModel>> {
-        match self {
-            #[cfg(feature = "postgres")]
-            BackendContainer::Postgres(p) => p.get_all(page, limit),
-            BackendContainer::Json(j) => j.get_all(page, limit),
-        }
+#[cfg(feature = "postgres")]
+pub fn make_backend(url: String) -> impl Backend {
+    let url = url.to_string();
+    if url.starts_with("file://") {
+        postgres::PostgresBackend::new(url)
+    } else {
+        error!("Database path must start file://");
+        std::process::exit(1);
     }
 }

@@ -22,14 +22,18 @@ impl RedirectModel {
         self.destination = destination.to_string();
     }
 
-    pub fn new(id: i32, alias: &str, destination: &str) -> Self {
+    pub fn update_username(&mut self, username: Option<&str>) {
+        self.created_by = username.map(|x| x.to_string());
+    }
+
+    pub fn new(id: i32, alias: &str, destination: &str, created_by: Option<String>) -> Self {
         RedirectModel {
             redirect_id: id,
             public_ref: make_random_id(),
             alias: alias.to_string(),
             destination: destination.to_string(),
             created_on: Utc::now().naive_utc(),
-            created_by: None,
+            created_by,
         }
     }
 }

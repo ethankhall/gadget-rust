@@ -87,7 +87,7 @@ impl super::Backend for JsonBackend {
         }
     }
 
-    fn create_redirect(&self, new_alias: &str, new_destination: &str) -> RowChange<RedirectModel> {
+    fn create_redirect(&self, new_alias: &str, new_destination: &str, username: &str) -> RowChange<RedirectModel> {
         let result = match self.storage.write() {
             Ok(mut vec) => {
                 if vec.iter().any(|redirect| redirect.alias == new_alias) {
@@ -96,7 +96,7 @@ impl super::Backend for JsonBackend {
 
                 let id = vec.iter().map(|x| x.redirect_id).max().unwrap_or(0) + 1;
 
-                let model = RedirectModel::new(id, new_alias, new_destination);
+                let model = RedirectModel::new(id, new_alias, new_destination, Some(username.to_string()));
                 vec.push(model.clone());
 
                 RowChange::Value(model)
@@ -108,13 +108,14 @@ impl super::Backend for JsonBackend {
         result
     }
 
-    fn update_redirect(&self, redirect_ref: &str, new_dest: &str) -> RowChange<usize> {
+    fn update_redirect(&self, redirect_ref: &str, new_dest: &str, username: &str) -> RowChange<usize> {
         let mut result = RowChange::NotFound;
         match self.storage.write() {
             Ok(mut vec) => {
                 for i in 0..vec.len() {
                     if vec[i].public_ref == redirect_ref || vec[i].alias == redirect_ref {
                         vec[i].set_destination(new_dest);
+                        vec[i].update_username(Some(username));
                         result = RowChange::Value(1);
                         break;
                     }
