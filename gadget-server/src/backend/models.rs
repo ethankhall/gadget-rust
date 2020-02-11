@@ -46,16 +46,38 @@ pub struct RedirectInsert<'a> {
     pub alias: &'a str,
     pub destination: &'a str,
     pub created_on: NaiveDateTime,
+    pub created_by: &'a str,
 }
 
 #[cfg(feature = "postgres")]
 impl<'a> RedirectInsert<'a> {
-    pub fn new(alias: &'a str, destination: &'a str) -> Self {
+    pub fn new(alias: &'a str, destination: &'a str, created_by: &'a str) -> Self {
         RedirectInsert {
             public_ref: make_random_id(),
             alias,
             destination,
             created_on: Utc::now().naive_utc(),
+            created_by,
+        }
+    }
+}
+
+#[cfg(feature = "postgres")]
+#[derive(AsChangeset)]
+#[table_name = "redirects"]
+pub struct RedirectUpdate<'a> {
+    pub destination: &'a str,
+    pub created_on: NaiveDateTime,
+    pub created_by: &'a str,
+}
+
+#[cfg(feature = "postgres")]
+impl<'a> RedirectUpdate<'a> {
+    pub fn new(destination: &'a str, created_by: &'a str) -> Self {
+        RedirectUpdate {
+            destination,
+            created_on: Utc::now().naive_utc(),
+            created_by,
         }
     }
 }

@@ -16,7 +16,7 @@ use flexi_logger::{LevelFilter, LogSpecBuilder, Logger};
 use futures_util::join;
 use warp::Filter;
 
-use crate::backend::{make_backend, Backend};
+use crate::backend::BackendContainer;
 
 #[macro_export]
 macro_rules! s {
@@ -75,7 +75,7 @@ async fn main() -> Result<(), &'static str> {
         .expect("To have a DB connection")
         .to_string();
 
-    let backend = match make_backend(backend_url) {
+    let backend = match BackendContainer::new(backend_url) {
         Ok(backend) => backend,
         Err(e) => {
             error!("{}", e);
@@ -164,11 +164,9 @@ async fn main() -> Result<(), &'static str> {
     Ok(())
 }
 
-fn with_context<T>(
-    context: Arc<handlers::RequestContext<T>>,
-) -> impl Filter<Extract = (Arc<handlers::RequestContext<T>>,), Error = std::convert::Infallible> + Clone
-where
-    T: Backend,
+fn with_context(
+    context: Arc<handlers::RequestContext>,
+) -> impl Filter<Extract = (Arc<handlers::RequestContext>,), Error = std::convert::Infallible> + Clone
 {
     warp::any().map(move || context.clone())
 }

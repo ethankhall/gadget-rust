@@ -10,20 +10,20 @@ use warp::{
     Filter,
 };
 
-use crate::backend::{Backend, RedirectModel, RowChange};
+use crate::backend::{BackendContainer, RedirectModel, RowChange};
 use crate::redirect::{AliasRedirect, Redirect};
 
 #[derive(Clone)]
-pub struct RequestContext<T: Backend> {
-    backend: Arc<T>,
+pub struct RequestContext {
+    backend: Arc<BackendContainer>,
 }
 
-unsafe impl<T> std::marker::Send for RequestContext<T> where T: Backend {}
+unsafe impl std::marker::Send for RequestContext {}
 
-unsafe impl<T> std::marker::Sync for RequestContext<T> where T: Backend {}
+unsafe impl std::marker::Sync for RequestContext {}
 
-impl<T: Backend> RequestContext<T> {
-    pub fn new(backend: T) -> Self {
+impl RequestContext {
+    pub fn new(backend: BackendContainer) -> Self {
         RequestContext {
             backend: Arc::new(backend),
         }
@@ -104,13 +104,10 @@ pub async fn favicon() -> Result<impl warp::Reply, Infallible> {
     Ok(StatusCode::NOT_FOUND)
 }
 
-pub async fn delete_redirect<T>(
+pub async fn delete_redirect(
     path: String,
-    context: Arc<RequestContext<T>>,
-) -> Result<impl warp::Reply, Infallible>
-where
-    T: Backend,
-{
+    context: Arc<RequestContext>,
+) -> Result<impl warp::Reply, Infallible> {
     let resp = context.backend.delete_redirect(&path);
 
     match resp {
@@ -131,14 +128,11 @@ pub fn json_body<T: DeserializeOwned + Send>(
     warp::body::content_length_limit(1024 * 16).and(warp::body::json())
 }
 
-pub async fn new_redirect_json<T>(
+pub async fn new_redirect_json(
     info: NewRedirect,
     user: UserDetails,
-    context: Arc<RequestContext<T>>,
-) -> Result<impl warp::Reply, Infallible>
-where
-    T: Backend,
-{
+    context: Arc<RequestContext>,
+) -> Result<impl warp::Reply, Infallible> {
     if !is_destination_url(&info.destination) {
         debug!("Destination wasn't URL {:?}", &info.destination);
         return ResponseMessage::from(format!("{:?} isn't a valid URL", &info.destination))
@@ -170,15 +164,12 @@ where
     }
 }
 
-pub async fn update_redirect<T>(
+pub async fn update_redirect(
     info: String,
     dest: UpdateRedirect,
     user: UserDetails,
-    context: Arc<RequestContext<T>>,
-) -> Result<impl warp::Reply, Infallible>
-where
-    T: Backend,
-{
+    context: Arc<RequestContext>,
+) -> Result<impl warp::Reply, Infallible> {
     if !is_destination_url(&dest.destination) {
         debug!("Destination wasn't URL {:?}", &dest.destination);
         return ResponseMessage::from(format!("{:?} isn't a valid URL", &dest.destination))
@@ -202,12 +193,7 @@ where
     }
 }
 
-pub async fn list_redirects<T>(
-    context: Arc<RequestContext<T>>,
-) -> Result<impl warp::Reply, Infallible>
-where
-    T: Backend,
-{
+pub async fn list_redirects(context: Arc<RequestContext>) -> Result<impl warp::Reply, Infallible> {
     let resp = match context.backend.get_all(0, 10000) {
         RowChange::Value(v) => {
             let data: Vec<ApiRedirect> = v.into_iter().map(|x| x.into()).collect();
@@ -231,13 +217,10 @@ fn is_destination_url(path: &str) -> bool {
     Url::parse(&path).is_ok()
 }
 
-pub async fn get_redirect<T>(
+pub async fn get_redirect(
     info: String,
-    context: Arc<RequestContext<T>>,
-) -> Result<impl warp::Reply, Infallible>
-where
-    T: Backend,
-{
+    context: Arc<RequestContext>,
+) -> Result<impl warp::Reply, Infallible> {
     match context.backend.get_redirect(&info) {
         RowChange::Value(value) => {
             let redirect: ApiRedirect = value.into();
@@ -257,13 +240,10 @@ where
     }
 }
 
-pub async fn find_redirect<T>(
+pub async fn find_redirect(
     path: warp::filters::path::Tail,
-    context: Arc<RequestContext<T>>,
-) -> Result<warp::reply::Response, Infallible>
-where
-    T: Backend,
-{
+    context: Arc<RequestContext>,
+) -> Result<warp::reply::Response, Infallible> {
     let info = path.as_str().replace("%20", " ");
 
     let redirect_ref: Vec<&str> = info.split(' ').collect();
