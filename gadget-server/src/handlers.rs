@@ -1,10 +1,11 @@
 use std::convert::Infallible;
 use std::sync::Arc;
 
+use url::Url;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use warp::{
     http::header::LOCATION,
-    http::{HeaderMap, StatusCode},
+    http::{HeaderMap, HeaderValue, StatusCode},
     reply::Reply,
     Filter,
 };
@@ -80,6 +81,7 @@ pub struct ApiRedirect {
     id: String,
     alias: String,
     destination: String,
+    created_by: Option<String>,
 }
 
 impl Into<ApiRedirect> for RedirectModel {
@@ -88,6 +90,7 @@ impl Into<ApiRedirect> for RedirectModel {
             id: self.public_ref,
             alias: self.alias,
             destination: self.destination,
+            created_by: self.created_by
         }
     }
 }
@@ -136,6 +139,13 @@ pub async fn new_redirect_json<T>(
 where
     T: Backend,
 {
+
+    if !is_destination_url(&info.destination) {
+        debug!("Destination wasn't URL {:?}", &info.destination);
+        return ResponseMessage::from(format!("{:?} isn't a valid URL", &info.destination))
+            .into_response(StatusCode::BAD_REQUEST);
+    }
+
     info!("Creating redirect {} => {}", info.alias, info.destination);
     match context
         .backend
@@ -170,6 +180,13 @@ pub async fn update_redirect<T>(
 where
     T: Backend,
 {
+
+    if !is_destination_url(&dest.destination) {
+        debug!("Destination wasn't URL {:?}", &dest.destination);
+        return ResponseMessage::from(format!("{:?} isn't a valid URL", &dest.destination))
+            .into_response(StatusCode::BAD_REQUEST);
+    }
+
     let resp = context
         .backend
         .update_redirect(&info, &dest.destination, &user.username);
@@ -210,6 +227,10 @@ where
         warp::reply::json(&resp),
         StatusCode::OK,
     ))
+}
+
+fn is_destination_url(path: &str) -> bool {
+    Url::parse(&path).is_ok()
 }
 
 pub async fn get_redirect<T>(
@@ -286,24 +307,24 @@ pub struct UserDetails {
     pub username: String,
 }
 
+impl From<Option<&HeaderValue>> for UserDetails {
+    fn from(value: Option<&HeaderValue>) -> Self {
+        UserDetails {
+            username: value
+                .map(|x| x.to_str().unwrap())
+                .map(|x| x.to_string())
+                .unwrap_or_else(|| "unknown".to_string()),
+        }
+    }
+}
+
 pub fn extract_user() -> impl Filter<Extract = (UserDetails,), Error = Infallible> + Clone {
     warp::filters::header::headers_cloned().map(|headers: HeaderMap| {
-        if headers.contains_key("Token-Claim-User") {
-            let caddy_jwt_username = headers.get("Token-Claim-User");
-            UserDetails {
-                username: caddy_jwt_username
-                    .map(|x| x.to_str().unwrap())
-                    .map(|x| x.to_string())
-                    .unwrap_or_else(|| "unknown".to_string()),
-            }
+        trace!("Headers: {:?}", headers);
+        if headers.contains_key("token-claim-sub") {
+            UserDetails::from(headers.get("token-claim-sub"))
         } else if headers.contains_key("x-amzn-oidc-identity") {
-            let aws_identity = headers.get("x-amzn-oidc-identity");
-            UserDetails {
-                username: aws_identity
-                    .map(|x| x.to_str().unwrap())
-                    .map(|x| x.to_string())
-                    .unwrap_or_else(|| "unknown".to_string()),
-            }
+            UserDetails::from(headers.get("x-amzn-oidc-identity"))
         } else {
             UserDetails {
                 username: "unknown".to_string(),

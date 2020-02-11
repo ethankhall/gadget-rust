@@ -1,0 +1,12 @@
+{
+  "redirects": [
+    {
+      "redirect_id": 1,
+      "public_ref": "GAWPBDtMK1",
+      "alias": "google",
+      "destination": "http://duckduckgo.com",
+      "created_on": "2020-02-11T04:58:07.965027371",
+      "created_by": "bob"
+    }
+  ]
+}

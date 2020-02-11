@@ -39,7 +39,7 @@ async fn main() -> Result<(), &'static str> {
         (version: crate_version!())
         (about: "Creates a Slack bot with PagerDuty")
         (@group logging =>
-            (@arg debug: -v --verbose +global "Increasing verbosity")
+            (@arg debug: -v --verbose +global +multiple "Increasing verbosity")
             (@arg warn: -w --warn +global "Only display warning messages")
             (@arg quite: -q --quite +global "Only error output will be displayed")
         )
@@ -53,12 +53,13 @@ async fn main() -> Result<(), &'static str> {
     let level_filter = match (
         matches.is_present("quite"),
         matches.is_present("warn"),
-        matches.is_present("debug"),
+        matches.occurrences_of("debug"),
     ) {
         (true, _, _) => LevelFilter::Error,
         (false, true, _) => LevelFilter::Warn,
-        (false, false, false) => LevelFilter::Info,
-        (false, false, true) => LevelFilter::Debug,
+        (false, false, 0) => LevelFilter::Info,
+        (false, false, 1) => LevelFilter::Debug,
+        (false, false, _) => LevelFilter::Trace,
     };
 
     let mut builder = LogSpecBuilder::new(); // default is LevelFilter::Off
