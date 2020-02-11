@@ -1,8 +1,8 @@
 use std::convert::Infallible;
 use std::sync::Arc;
 
-use url::Url;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use url::Url;
 use warp::{
     http::header::LOCATION,
     http::{HeaderMap, HeaderValue, StatusCode},
@@ -90,7 +90,7 @@ impl Into<ApiRedirect> for RedirectModel {
             id: self.public_ref,
             alias: self.alias,
             destination: self.destination,
-            created_by: self.created_by
+            created_by: self.created_by,
         }
     }
 }
@@ -139,7 +139,6 @@ pub async fn new_redirect_json<T>(
 where
     T: Backend,
 {
-
     if !is_destination_url(&info.destination) {
         debug!("Destination wasn't URL {:?}", &info.destination);
         return ResponseMessage::from(format!("{:?} isn't a valid URL", &info.destination))
@@ -180,7 +179,6 @@ pub async fn update_redirect<T>(
 where
     T: Backend,
 {
-
     if !is_destination_url(&dest.destination) {
         debug!("Destination wasn't URL {:?}", &dest.destination);
         return ResponseMessage::from(format!("{:?} isn't a valid URL", &dest.destination))
