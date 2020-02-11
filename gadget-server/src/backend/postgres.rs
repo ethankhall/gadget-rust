@@ -68,8 +68,13 @@ impl super::Backend for PostgresBackend {
             .into()
     }
 
-    fn create_redirect(&self, new_alias: &str, new_destination: &str) -> RowChange<RedirectModel> {
-        let new_redirect = RedirectInsert::new(new_alias, new_destination);
+    fn create_redirect(
+        &self,
+        new_alias: &str,
+        new_destination: &str,
+        username: &str,
+    ) -> RowChange<RedirectModel> {
+        let new_redirect = RedirectInsert::new(new_alias, new_destination, username);
 
         match diesel::insert_into(redirects)
             .values(&new_redirect)
@@ -90,13 +95,18 @@ impl super::Backend for PostgresBackend {
             .into()
     }
 
-    fn update_redirect(&self, redirect_ref: &str, new_dest: &str) -> RowChange<usize> {
+    fn update_redirect(
+        &self,
+        redirect_ref: &str,
+        new_dest: &str,
+        username: &str,
+    ) -> RowChange<usize> {
         let filter = redirects
             .filter(alias.eq(redirect_ref))
             .or_filter(public_ref.eq(redirect_ref));
 
         diesel::update(filter)
-            .set(destination.eq(new_dest))
+            .set(RedirectUpdate::new(new_dest, username))
             .execute(&self.pool.get().unwrap())
             .into()
     }

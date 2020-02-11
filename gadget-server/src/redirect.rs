@@ -8,12 +8,15 @@ pub trait Redirect {
 #[derive(Debug, Clone, PartialEq)]
 struct DestPart {
     number_of_components: usize,
-    dest: String
+    dest: String,
 }
 
 impl DestPart {
     fn new(number_of_components: usize, dest: String) -> Self {
-        DestPart { number_of_components, dest }
+        DestPart {
+            number_of_components,
+            dest,
+        }
     }
 }
 
@@ -78,7 +81,10 @@ impl AliasRedirect {
                 post = format!("{}{}", parts.remove(size), post);
                 pre = format!("{}{}", pre, parts.remove(0));
 
-                destinations.push(DestPart::new(number_of_components, format!("{}{}{}", base, pre, post)));
+                destinations.push(DestPart::new(
+                    number_of_components,
+                    format!("{}{}{}", base, pre, post),
+                ));
                 number_of_components += 1;
             }
         }
@@ -94,7 +100,7 @@ impl Redirect for AliasRedirect {
     fn get_destination(&self, input: &str) -> String {
         let mut inputs: Vec<&str> = input.split(' ').collect();
         inputs.remove(0);
-        
+
         let part = if inputs.len() <= self.destinations.len() {
             self.destinations.get(inputs.len()).unwrap()
         } else {
@@ -125,7 +131,10 @@ fn long_url_with_spaces() {
 
     let alias = AliasRedirect::new(s!("google"), s!("https://duckduckgo.com/{?q=$1}"));
 
-    assert_eq!("https://duckduckgo.com/?q=let me google that for you", &alias.get_destination("google let me google that for you"));
+    assert_eq!(
+        "https://duckduckgo.com/?q=let me google that for you",
+        &alias.get_destination("google let me google that for you")
+    );
 }
 
 #[test]

@@ -2,20 +2,30 @@ use std::convert::Infallible;
 use std::sync::Arc;
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use warp::{http::header::LOCATION, http::StatusCode, reply::Reply, Filter};
+use url::Url;
+use warp::{
+    http::header::LOCATION,
+    http::{HeaderMap, HeaderValue, StatusCode},
+    reply::Reply,
+    Filter,
+};
 
-use crate::backend::{Backend, BackendContainer, RedirectModel, RowChange};
+use crate::backend::{BackendContainer, RedirectModel, RowChange};
 use crate::redirect::{AliasRedirect, Redirect};
 
 #[derive(Clone)]
-pub struct Context {
+pub struct RequestContext {
     backend: Arc<BackendContainer>,
 }
 
-impl Context {
-    pub fn new<T: ToString>(url: T) -> Self {
-        Context {
-            backend: Arc::new(BackendContainer::new(url)),
+unsafe impl std::marker::Send for RequestContext {}
+
+unsafe impl std::marker::Sync for RequestContext {}
+
+impl RequestContext {
+    pub fn new(backend: BackendContainer) -> Self {
+        RequestContext {
+            backend: Arc::new(backend),
         }
     }
 }
@@ -71,6 +81,7 @@ pub struct ApiRedirect {
     id: String,
     alias: String,
     destination: String,
+    created_by: Option<String>,
 }
 
 impl Into<ApiRedirect> for RedirectModel {
@@ -79,6 +90,7 @@ impl Into<ApiRedirect> for RedirectModel {
             id: self.public_ref,
             alias: self.alias,
             destination: self.destination,
+            created_by: self.created_by,
         }
     }
 }
@@ -94,7 +106,7 @@ pub async fn favicon() -> Result<impl warp::Reply, Infallible> {
 
 pub async fn delete_redirect(
     path: String,
-    context: Arc<Context>,
+    context: Arc<RequestContext>,
 ) -> Result<impl warp::Reply, Infallible> {
     let resp = context.backend.delete_redirect(&path);
 
@@ -118,12 +130,19 @@ pub fn json_body<T: DeserializeOwned + Send>(
 
 pub async fn new_redirect_json(
     info: NewRedirect,
-    context: Arc<Context>,
+    user: UserDetails,
+    context: Arc<RequestContext>,
 ) -> Result<impl warp::Reply, Infallible> {
+    if !is_destination_url(&info.destination) {
+        debug!("Destination wasn't URL {:?}", &info.destination);
+        return ResponseMessage::from(format!("{:?} isn't a valid URL", &info.destination))
+            .into_response(StatusCode::BAD_REQUEST);
+    }
+
     info!("Creating redirect {} => {}", info.alias, info.destination);
     match context
         .backend
-        .create_redirect(&info.alias, &info.destination)
+        .create_redirect(&info.alias, &info.destination, &user.username)
     {
         RowChange::Value(result) => {
             let api_model: ApiRedirect = result.into();
@@ -148,9 +167,18 @@ pub async fn new_redirect_json(
 pub async fn update_redirect(
     info: String,
     dest: UpdateRedirect,
-    context: Arc<Context>,
+    user: UserDetails,
+    context: Arc<RequestContext>,
 ) -> Result<impl warp::Reply, Infallible> {
-    let resp = context.backend.update_redirect(&info, &dest.destination);
+    if !is_destination_url(&dest.destination) {
+        debug!("Destination wasn't URL {:?}", &dest.destination);
+        return ResponseMessage::from(format!("{:?} isn't a valid URL", &dest.destination))
+            .into_response(StatusCode::BAD_REQUEST);
+    }
+
+    let resp = context
+        .backend
+        .update_redirect(&info, &dest.destination, &user.username);
 
     match resp {
         RowChange::NotFound => {
@@ -165,7 +193,7 @@ pub async fn update_redirect(
     }
 }
 
-pub async fn list_redirects(context: Arc<Context>) -> Result<impl warp::Reply, Infallible> {
+pub async fn list_redirects(context: Arc<RequestContext>) -> Result<impl warp::Reply, Infallible> {
     let resp = match context.backend.get_all(0, 10000) {
         RowChange::Value(v) => {
             let data: Vec<ApiRedirect> = v.into_iter().map(|x| x.into()).collect();
@@ -185,9 +213,13 @@ pub async fn list_redirects(context: Arc<Context>) -> Result<impl warp::Reply, I
     ))
 }
 
+fn is_destination_url(path: &str) -> bool {
+    Url::parse(&path).is_ok()
+}
+
 pub async fn get_redirect(
     info: String,
-    context: Arc<Context>,
+    context: Arc<RequestContext>,
 ) -> Result<impl warp::Reply, Infallible> {
     match context.backend.get_redirect(&info) {
         RowChange::Value(value) => {
@@ -210,11 +242,11 @@ pub async fn get_redirect(
 
 pub async fn find_redirect(
     path: warp::filters::path::Tail,
-    context: Arc<Context>,
+    context: Arc<RequestContext>,
 ) -> Result<warp::reply::Response, Infallible> {
     let info = path.as_str().replace("%20", " ");
 
-    let redirect_ref: Vec<&str> = info.split(" ").collect();
+    let redirect_ref: Vec<&str> = info.split(' ').collect();
     let redirect_ref = match redirect_ref.first() {
         None => {
             return Ok(warp::http::Response::builder()
@@ -247,4 +279,34 @@ pub async fn find_redirect(
                 .map(|x| x.into_response())
         }
     }
+}
+
+pub struct UserDetails {
+    pub username: String,
+}
+
+impl From<Option<&HeaderValue>> for UserDetails {
+    fn from(value: Option<&HeaderValue>) -> Self {
+        UserDetails {
+            username: value
+                .map(|x| x.to_str().unwrap())
+                .map(|x| x.to_string())
+                .unwrap_or_else(|| "unknown".to_string()),
+        }
+    }
+}
+
+pub fn extract_user() -> impl Filter<Extract = (UserDetails,), Error = Infallible> + Clone {
+    warp::filters::header::headers_cloned().map(|headers: HeaderMap| {
+        trace!("Headers: {:?}", headers);
+        if headers.contains_key("token-claim-sub") {
+            UserDetails::from(headers.get("token-claim-sub"))
+        } else if headers.contains_key("x-amzn-oidc-identity") {
+            UserDetails::from(headers.get("x-amzn-oidc-identity"))
+        } else {
+            UserDetails {
+                username: "unknown".to_string(),
+            }
+        }
+    })
 }

@@ -1,6 +1,10 @@
 <template>
   <div class="create">
-    <div v-if="errored">There was an error creating the redirect.</div>
+    <div v-if="errored">
+      <div class="alert alert-danger" role="alert">
+        There was an error creating the redirect. {{ this.errorMessage }}
+      </div>
+    </div>
 
     <b-form @submit="onSubmit">
       <b-form-group id="input-group-1" label="Alias:" label-for="input-1">
@@ -25,9 +29,9 @@
         ></b-form-input>
       </b-form-group>
 
-      <b-button type="submit" variant="primary">Submit</b-button>
-      <router-link :to="{ name: 'home'}">
-        <b-button type="reset" variant="danger">Cancel</b-button>
+      <b-button pill type="submit" variant="primary">Submit</b-button>&nbsp;
+      <router-link :to="{ name: 'home' }">
+        <b-button pill type="reset" variant="danger">Cancel</b-button>
       </router-link>
     </b-form>
   </div>
@@ -42,6 +46,7 @@ export default {
   data() {
     return {
       errored: false,
+      errorMessage: "",
       form: {
         alias: null,
         destination: null
@@ -57,14 +62,15 @@ export default {
       };
 
       axios
-        .post("/_gadget/api/redirect", data, )
+        .post("/_gadget/api/redirect", data)
         .then(response => {
           this.$router.push({ name: "home" });
         })
         .catch(error => {
-          // eslint-disable-next-line
-          console.error(error);
           this.errored = true;
+          if (error.response) {
+            this.errorMessage = `Error message: '${error.response.data.message}'`;
+          }
         });
     }
   }

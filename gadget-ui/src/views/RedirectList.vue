@@ -75,7 +75,7 @@ export default {
       loading: false,
       redirects: null,
       error: null,
-      fields: ["ID", "alias", "destination", "actions"],
+      fields: ["ID", "alias", "destination", "created_by", "actions"],
       filter: null,
       perPage: 50,
       currentPage: 1

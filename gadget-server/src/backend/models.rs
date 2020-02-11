@@ -22,14 +22,18 @@ impl RedirectModel {
         self.destination = destination.to_string();
     }
 
-    pub fn new(id: i32, alias: &str, destination: &str) -> Self {
+    pub fn update_username(&mut self, username: Option<&str>) {
+        self.created_by = username.map(|x| x.to_string());
+    }
+
+    pub fn new(id: i32, alias: &str, destination: &str, created_by: Option<String>) -> Self {
         RedirectModel {
             redirect_id: id,
             public_ref: make_random_id(),
             alias: alias.to_string(),
             destination: destination.to_string(),
             created_on: Utc::now().naive_utc(),
-            created_by: None,
+            created_by,
         }
     }
 }
@@ -42,16 +46,38 @@ pub struct RedirectInsert<'a> {
     pub alias: &'a str,
     pub destination: &'a str,
     pub created_on: NaiveDateTime,
+    pub created_by: &'a str,
 }
 
 #[cfg(feature = "postgres")]
 impl<'a> RedirectInsert<'a> {
-    pub fn new(alias: &'a str, destination: &'a str) -> Self {
+    pub fn new(alias: &'a str, destination: &'a str, created_by: &'a str) -> Self {
         RedirectInsert {
             public_ref: make_random_id(),
             alias,
             destination,
             created_on: Utc::now().naive_utc(),
+            created_by,
+        }
+    }
+}
+
+#[cfg(feature = "postgres")]
+#[derive(AsChangeset)]
+#[table_name = "redirects"]
+pub struct RedirectUpdate<'a> {
+    pub destination: &'a str,
+    pub created_on: NaiveDateTime,
+    pub created_by: &'a str,
+}
+
+#[cfg(feature = "postgres")]
+impl<'a> RedirectUpdate<'a> {
+    pub fn new(destination: &'a str, created_by: &'a str) -> Self {
+        RedirectUpdate {
+            destination,
+            created_on: Utc::now().naive_utc(),
+            created_by,
         }
     }
 }

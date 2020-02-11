@@ -6,7 +6,7 @@ edition = "2018"
 
 
 [features]
-default = []
+default = ["postgres"]
 postgres = ["diesel", "r2d2"]
 
 [dependencies]

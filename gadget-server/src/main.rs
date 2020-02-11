@@ -16,6 +16,8 @@ use flexi_logger::{LevelFilter, LogSpecBuilder, Logger};
 use futures_util::join;
 use warp::Filter;
 
+use crate::backend::BackendContainer;
+
 #[macro_export]
 macro_rules! s {
     ($x:expr) => {
@@ -37,7 +39,7 @@ async fn main() -> Result<(), &'static str> {
         (version: crate_version!())
         (about: "Creates a Slack bot with PagerDuty")
         (@group logging =>
-            (@arg debug: -v --verbose +global "Increasing verbosity")
+            (@arg debug: -v --verbose +global +multiple "Increasing verbosity")
             (@arg warn: -w --warn +global "Only display warning messages")
             (@arg quite: -q --quite +global "Only error output will be displayed")
         )
@@ -51,12 +53,13 @@ async fn main() -> Result<(), &'static str> {
     let level_filter = match (
         matches.is_present("quite"),
         matches.is_present("warn"),
-        matches.is_present("debug"),
+        matches.occurrences_of("debug"),
     ) {
         (true, _, _) => LevelFilter::Error,
         (false, true, _) => LevelFilter::Warn,
-        (false, false, false) => LevelFilter::Info,
-        (false, false, true) => LevelFilter::Debug,
+        (false, false, 0) => LevelFilter::Info,
+        (false, false, 1) => LevelFilter::Debug,
+        (false, false, _) => LevelFilter::Trace,
     };
 
     let mut builder = LogSpecBuilder::new(); // default is LevelFilter::Off
@@ -67,11 +70,20 @@ async fn main() -> Result<(), &'static str> {
         .start()
         .unwrap();
 
-    let backend = handlers::Context::new(
-        matches
-            .value_of("DB_CONNECTION")
-            .expect("To have a DB connection"),
-    );
+    let backend_url = matches
+        .value_of("DB_CONNECTION")
+        .expect("To have a DB connection")
+        .to_string();
+
+    let backend = match BackendContainer::new(backend_url) {
+        Ok(backend) => backend,
+        Err(e) => {
+            error!("{}", e);
+            std::process::exit(1);
+        }
+    };
+
+    let backend = handlers::RequestContext::new(backend);
 
     let backend = Arc::new(backend);
 
@@ -91,6 +103,7 @@ async fn main() -> Result<(), &'static str> {
         .or(warp::path!("_gadget" / "api" / "redirect")
             .and(warp::post())
             .and(handlers::json_body())
+            .and(handlers::extract_user())
             .and(with_context(backend.clone()))
             .and_then(handlers::new_redirect_json))
         .or(warp::path!("_gadget" / "api" / "redirect" / String)
@@ -104,6 +117,7 @@ async fn main() -> Result<(), &'static str> {
         .or(warp::path!("_gadget" / "api" / "redirect" / String)
             .and(warp::put())
             .and(handlers::json_body())
+            .and(handlers::extract_user())
             .and(with_context(backend.clone()))
             .and_then(handlers::update_redirect))
         .or(warp::path("_gadget")
@@ -151,8 +165,9 @@ async fn main() -> Result<(), &'static str> {
 }
 
 fn with_context(
-    context: Arc<handlers::Context>,
-) -> impl Filter<Extract = (Arc<handlers::Context>,), Error = std::convert::Infallible> + Clone {
+    context: Arc<handlers::RequestContext>,
+) -> impl Filter<Extract = (Arc<handlers::RequestContext>,), Error = std::convert::Infallible> + Clone
+{
     warp::any().map(move || context.clone())
 }
 

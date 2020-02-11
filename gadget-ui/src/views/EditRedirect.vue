@@ -1,8 +1,12 @@
 <template>
   <div class="home">
-    <div v-if="errored">There was an error updating the redirect.</div>
+    <div v-if="errored">
+      <div class="alert alert-danger" role="alert">
+        There was an error creating the redirect. {{ this.errorMessage }}
+      </div>
+    </div>
     <div v-if="!loading">
-      <b-form @submit="onUpdate" @abort="onAbort">
+      <b-form @submit="onUpdate" @reset="onAbort">
         <b-form-group id="input-group-1" label="Alias:" label-for="input-1">
           <b-form-input
             id="input-1"
@@ -13,7 +17,11 @@
           ></b-form-input>
         </b-form-group>
 
-        <b-form-group id="input-group-2" label="Destination:" label-for="input-2">
+        <b-form-group
+          id="input-group-2"
+          label="Destination:"
+          label-for="input-2"
+        >
           <b-form-input
             id="input-2"
             type="text"
@@ -23,8 +31,8 @@
           ></b-form-input>
         </b-form-group>
 
-        <b-button type="submit" variant="primary">Update</b-button>
-        <b-button type="abort" variant="danger">Cancel</b-button>
+        <b-button pill type="submit" variant="primary">Update</b-button>&nbsp;
+        <b-button pill type="reset" variant="danger">Cancel</b-button>
       </b-form>
     </div>
   </div>
@@ -40,7 +48,8 @@ export default {
     return {
       loading: false,
       redirect: null,
-      errored: null
+      errored: null,
+      errorMessage: ""
     };
   },
   created() {
@@ -72,11 +81,13 @@ export default {
             autoHideDelay: 2000,
             appendToast: true
           });
+          this.errored = false;
         })
         .catch(error => {
-          // eslint-disable-next-line
-          console.log(error);
           this.errored = true;
+          if (error.response) {
+            this.errorMessage = `Error message: '${error.response.data.message}'`;
+          }
         });
     },
     fetchData() {
