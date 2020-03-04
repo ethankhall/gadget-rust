@@ -15,7 +15,7 @@ diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"], optional 
 clap = { version = "2.33" }
 dotenv = "0.15.0"
 chrono = { version = "0.4", features = ["serde"] }
-flexi_logger = { version = "0.14", features = ["specfile", "ziplogs", "colors"] }
+flexi_logger = { version = "0.15", features = ["specfile", "ziplogs", "colors"] }
 log = "0.4"
 r2d2 = { version = "0.8", optional = true }
 rand = "0.7"
