@@ -37,7 +37,7 @@ async fn main() -> Result<(), &'static str> {
 
     let matches = clap_app!(gadget =>
         (version: crate_version!())
-        (about: "Creates a Slack bot with PagerDuty")
+        (about: "Runs a go/ Links Server")
         (@group logging =>
             (@arg debug: -v --verbose +global +multiple "Increasing verbosity")
             (@arg warn: -w --warn +global "Only display warning messages")
