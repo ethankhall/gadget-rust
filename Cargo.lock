@@ -399,7 +399,7 @@ dependencies = [
  "mime_guess",
  "prometheus",
  "r2d2",
- "rand 0.7.3",
+ "rand 0.8.3",
  "serde",
  "serde_json",
  "tokio",
