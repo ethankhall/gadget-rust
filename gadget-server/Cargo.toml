@@ -31,4 +31,4 @@ hyper = "0.14"
 tokio = { version = "1", features = ["full"] }
 
 [dev-dependencies]
-env_logger = "0.7.1"
+env_logger = "0.8.4"
