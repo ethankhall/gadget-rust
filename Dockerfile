@@ -22,8 +22,19 @@ WORKDIR /gadget/gadget-ui
 RUN yarn
 RUN yarn build
 
+# verify linked deps
+FROM debian:buster-slim
+
+RUN apt-get update && apt-get install -y libpq5 && apt-get clean 
+
+# copy the build artifact from the build stage
+COPY --from=rust-builder /usr/local/cargo/bin/gadget /app/bin/gadget
+RUN /app/bin/gadget --help
+
 # our final base
 FROM debian:buster-slim
+
+RUN apt-get update && apt-get install -y libpq5 && apt-get clean 
 
 # copy the build artifact from the build stage
 COPY --from=rust-builder /usr/local/cargo/bin/gadget /app/bin/gadget
