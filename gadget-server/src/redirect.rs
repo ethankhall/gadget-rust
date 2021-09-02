@@ -1,4 +1,5 @@
 use crate::backend::RedirectModel;
+use tracing::{warn, debug};
 
 pub trait Redirect {
     fn get_destination(&self, input: &str) -> String;
@@ -98,11 +99,21 @@ impl AliasRedirect {
 
 impl Redirect for AliasRedirect {
     fn get_destination(&self, input: &str) -> String {
-        let mut inputs: Vec<&str> = input.split(' ').collect();
+        let parsed_input = match urlencoding::decode(input) {
+            Ok(s) => s.to_string(),
+            Err(_) => input.to_owned(),
+        };
+
+        debug!("Parsed Input: {}", parsed_input);
+
+        let mut inputs: Vec<&str> = parsed_input.split(' ').collect();
         inputs.remove(0);
 
         let part = if inputs.len() <= self.destinations.len() {
-            self.destinations.get(inputs.len()).unwrap()
+            match self.destinations.get(inputs.len()) {
+                Some(dest) => dest,
+                None => self.destinations.last().unwrap()
+            }
         } else {
             self.destinations.last().unwrap()
         };
@@ -127,7 +138,7 @@ impl Redirect for AliasRedirect {
 
 #[test]
 fn long_url_with_spaces() {
-    let _ = env_logger::builder().is_test(true).try_init();
+    use urlencoding::encode;
 
     let alias = AliasRedirect::new(s!("google"), s!("https://duckduckgo.com/{?q=$1}"));
 
@@ -135,12 +146,17 @@ fn long_url_with_spaces() {
         "https://duckduckgo.com/?q=let me google that for you",
         &alias.get_destination("google let me google that for you")
     );
+
+    let alias = AliasRedirect::new(s!("google"), s!("https://duckduckgo.com/{?q=$1}"));
+
+    assert_eq!(
+        "https://duckduckgo.com/?q=let me google that for you",
+        &alias.get_destination(&encode("google let me google that for you"))
+    );
 }
 
 #[test]
 fn with_just_query() {
-    let _ = env_logger::builder().is_test(true).try_init();
-
     let alias = AliasRedirect::new(s!("google"), s!("https://duckduckgo.com/{?q=$1}"));
 
     assert_eq!("https://duckduckgo.com/", &alias.get_destination("google"));

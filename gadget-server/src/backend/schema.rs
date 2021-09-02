@@ -1,6 +1,4 @@
 table! {
-    use diesel::sql_types::{Int4, Varchar, Timestamp, Nullable};
-
     redirects (redirect_id) {
         redirect_id -> Int4,
         public_ref -> Varchar,
@@ -21,4 +19,7 @@ table! {
 
 joinable!(usage -> redirects (redirect_id));
 
-allow_tables_to_appear_in_same_query!(redirects, usage,);
+allow_tables_to_appear_in_same_query!(
+    redirects,
+    usage,
+);

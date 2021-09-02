@@ -1,20 +1,15 @@
-#[cfg(feature = "postgres")]
-#[macro_use]
-extern crate diesel;
-#[macro_use]
-extern crate clap;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate prometheus;
+#[macro_use] extern crate diesel;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 use dotenv::dotenv;
-use flexi_logger::{LevelFilter, LogSpecBuilder, Logger};
 use futures_util::join;
 use warp::Filter;
+
+use clap::{clap_app, crate_version};
+use tracing::{error, Level};
+use tracing_subscriber::{fmt::format::FmtSpan, FmtSubscriber};
 
 use crate::backend::BackendContainer;
 
@@ -39,9 +34,10 @@ async fn main() -> Result<(), &'static str> {
         (version: crate_version!())
         (about: "Runs a go/ Links Server")
         (@group logging =>
-            (@arg debug: -v --verbose +global +multiple "Increasing verbosity")
+            (@arg trace: --trace +global +multiple "Show trace logging")
+            (@arg debug: -d --debug +global +multiple "Show debug logging")
             (@arg warn: -w --warn +global "Only display warning messages")
-            (@arg quite: -q --quite +global "Only error output will be displayed")
+            (@arg error: --error +global "Only error output will be displayed")
         )
         (@arg ui_directory: --("ui-path") +takes_value env("UI_PATH") default_value("./public") "Where should the UI be served from?")
         (@arg listen_server: --listen +takes_value default_value("0.0.0.0:8080") "What port to should the main app listen on?")
@@ -51,24 +47,30 @@ async fn main() -> Result<(), &'static str> {
     .get_matches();
 
     let level_filter = match (
-        matches.is_present("quite"),
+        matches.is_present("error"),
         matches.is_present("warn"),
-        matches.occurrences_of("debug"),
+        matches.is_present("debug"),
+        matches.is_present("trace"),
     ) {
-        (true, _, _) => LevelFilter::Error,
-        (false, true, _) => LevelFilter::Warn,
-        (false, false, 0) => LevelFilter::Info,
-        (false, false, 1) => LevelFilter::Debug,
-        (false, false, _) => LevelFilter::Trace,
+        (true, _, _, _) => Level::ERROR,
+        (false, true, _, _) => Level::WARN,
+        (false, false, true, _) => Level::DEBUG,
+        (false, false, false, true) => Level::TRACE,
+        _ => Level::INFO,
     };
 
-    let mut builder = LogSpecBuilder::new(); // default is LevelFilter::Off
-    builder.default(level_filter);
+    // a builder for `FmtSubscriber`.
+    let subscriber = FmtSubscriber::builder()
+        // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
+        // will be written to stdout.
+        .with_max_level(level_filter)
+        // Record an event when each span closes. This can be used to time our
+        // routes' durations!
+        .with_span_events(FmtSpan::CLOSE)
+        // completes the builder.
+        .finish();
 
-    Logger::with(builder.build())
-        .format(custom_log_format)
-        .start()
-        .unwrap();
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     let backend_url = matches
         .value_of("DB_CONNECTION")
@@ -175,25 +177,4 @@ fn with_web_dir(
     web_dir: Arc<ui::WebDirectory>,
 ) -> impl Filter<Extract = (Arc<ui::WebDirectory>,), Error = std::convert::Infallible> + Clone {
     warp::any().map(move || web_dir.clone())
-}
-
-fn custom_log_format(
-    w: &mut dyn std::io::Write,
-    now: &mut flexi_logger::DeferredNow,
-    record: &flexi_logger::Record,
-) -> Result<(), std::io::Error> {
-    use flexi_logger::style;
-    use std::thread;
-
-    let level = record.level();
-    write!(
-        w,
-        "[{}] T[{:?}] {} [{}:{}] {}",
-        style(level, now.now().format("%Y-%m-%d %H:%M:%S%.6f %:z")),
-        style(level, thread::current().name().unwrap_or("<unnamed>")),
-        style(level, level),
-        record.module_path().unwrap_or("<unnamed>"),
-        record.line().unwrap_or(0),
-        style(level, &record.args())
-    )
 }

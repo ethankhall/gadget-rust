@@ -1,5 +1,6 @@
 use std::convert::TryInto;
 use std::sync::Arc;
+use tracing::{info};
 
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;

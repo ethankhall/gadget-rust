@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use tracing::{error, warn};
 
 use mime_guess::from_path;
 use warp::http::header::CONTENT_TYPE;

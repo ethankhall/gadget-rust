@@ -1,5 +1,6 @@
 use super::{models::RedirectModel, RowChange};
 use serde::{Deserialize, Serialize};
+use tracing::{error, info, warn};
 use url::Url;
 
 use std::{

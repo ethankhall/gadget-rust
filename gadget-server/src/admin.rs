@@ -1,5 +1,8 @@
 use lazy_static::lazy_static;
-use prometheus::{Counter, CounterVec, Encoder, HistogramVec, TextEncoder};
+use prometheus::{
+    labels, opts, register_counter, register_counter_vec, register_histogram_vec, Counter,
+    CounterVec, Encoder, HistogramVec, TextEncoder,
+};
 
 use warp::http::header::CONTENT_TYPE;
 

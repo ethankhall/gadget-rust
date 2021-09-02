@@ -1,5 +1,6 @@
 use std::convert::Infallible;
 use std::sync::Arc;
+use tracing::{instrument, debug, error, info, trace, warn};
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use url::Url;
@@ -217,6 +218,7 @@ fn is_destination_url(path: &str) -> bool {
     Url::parse(&path).is_ok()
 }
 
+#[instrument(skip(context))]
 pub async fn get_redirect(
     info: String,
     context: Arc<RequestContext>,
