@@ -2,7 +2,7 @@ use std::convert::TryInto;
 use std::sync::Arc;
 use tracing::{info};
 
-use diesel::pg::PgConnection;
+use diesel_tracing::pg::InstrumentedPgConnection;
 use diesel::r2d2::ConnectionManager;
 use r2d2::Pool;
 
@@ -12,7 +12,7 @@ use super::RowChange;
 use diesel::prelude::*;
 
 pub struct PostgresBackend {
-    pool: Arc<Pool<ConnectionManager<PgConnection>>>,
+    pool: Arc<Pool<ConnectionManager<InstrumentedPgConnection>>>,
 }
 
 impl Into<RowChange<usize>> for QueryResult<usize> {
@@ -48,7 +48,7 @@ impl Into<RowChange<Vec<RedirectModel>>> for QueryResult<Vec<RedirectModel>> {
 impl PostgresBackend {
     pub fn new<S: ToString>(connection: S) -> Self {
         info!("Connecting to PostgresDB");
-        let manager = ConnectionManager::<PgConnection>::new(&connection.to_string());
+        let manager = ConnectionManager::<InstrumentedPgConnection>::new(&connection.to_string());
         let pool = Pool::builder()
             .max_size(10)
             .test_on_check_out(true)
@@ -61,6 +61,7 @@ impl PostgresBackend {
 }
 
 impl super::Backend for PostgresBackend {
+    #[tracing::instrument(skip(self))]
     fn get_redirect(&self, redirect_ref: &str) -> RowChange<RedirectModel> {
         redirects
             .filter(alias.eq(redirect_ref))
@@ -69,6 +70,7 @@ impl super::Backend for PostgresBackend {
             .into()
     }
 
+    #[tracing::instrument(skip(self))]
     fn create_redirect(
         &self,
         new_alias: &str,
@@ -86,6 +88,7 @@ impl super::Backend for PostgresBackend {
         }
     }
 
+    #[tracing::instrument(skip(self))]
     fn delete_redirect(&self, redirect_ref: &str) -> RowChange<usize> {
         let filter = redirects
             .filter(alias.eq(redirect_ref))
@@ -96,6 +99,7 @@ impl super::Backend for PostgresBackend {
             .into()
     }
 
+    #[tracing::instrument(skip(self))]
     fn update_redirect(
         &self,
         redirect_ref: &str,
@@ -112,6 +116,7 @@ impl super::Backend for PostgresBackend {
             .into()
     }
 
+    #[tracing::instrument(skip(self))]
     fn get_all(&self, page: u64, limit: usize) -> RowChange<Vec<RedirectModel>> {
         let i_limit: i64 = match limit.try_into() {
             Ok(i) => i,

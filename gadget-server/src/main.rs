@@ -1,3 +1,4 @@
+#[cfg(feature = "postgres")]
 #[macro_use] extern crate diesel;
 
 use std::net::SocketAddr;
@@ -8,10 +9,51 @@ use futures_util::join;
 use warp::Filter;
 
 use clap::{clap_app, crate_version};
-use tracing::{error, Level};
-use tracing_subscriber::{fmt::format::FmtSpan, FmtSubscriber};
+use tracing::{error, level_filters::LevelFilter};
+use opentelemetry::sdk::{trace::{self, IdGenerator, Sampler}};
+use tracing_subscriber::{fmt::format::FmtSpan};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::Registry;
 
 use crate::backend::BackendContainer;
+
+use tracing_core::{Subscriber, Event};
+use tracing_subscriber::fmt::{FormatEvent, FormatFields, FmtContext};
+use tracing_subscriber::registry::LookupSpan;
+use tracing_subscriber::fmt::format::Format;
+
+enum LoggingFormat {
+    Json(Format<tracing_subscriber::fmt::format::Json>),
+    Pretty(Format<tracing_subscriber::fmt::format::Pretty>),
+}
+
+impl Default for LoggingFormat {
+    fn default() -> Self {
+        if atty::is(atty::Stream::Stdout) {
+            LoggingFormat::Pretty(tracing_subscriber::fmt::format().pretty())
+        } else {
+            LoggingFormat::Json(tracing_subscriber::fmt::format().json())
+        }
+    }
+}
+
+impl<S, N> FormatEvent<S, N> for LoggingFormat
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+    N: for<'a> FormatFields<'a> + 'static,
+{
+    fn format_event(
+        &self,
+        ctx: &FmtContext<'_, S, N>,
+        writer: &mut dyn std::fmt::Write,
+        event: &Event<'_>,
+    ) -> std::fmt::Result {
+        match self {
+            LoggingFormat::Json(j) => j.format_event(ctx, writer, event),
+            LoggingFormat::Pretty(p) => p.format_event(ctx, writer, event),
+        }
+    }
+}
 
 #[macro_export]
 macro_rules! s {
@@ -52,23 +94,33 @@ async fn main() -> Result<(), &'static str> {
         matches.is_present("debug"),
         matches.is_present("trace"),
     ) {
-        (true, _, _, _) => Level::ERROR,
-        (false, true, _, _) => Level::WARN,
-        (false, false, true, _) => Level::DEBUG,
-        (false, false, false, true) => Level::TRACE,
-        _ => Level::INFO,
+        (true, _, _, _) => LevelFilter::ERROR,
+        (false, true, _, _) => LevelFilter::WARN,
+        (false, false, true, _) => LevelFilter::DEBUG,
+        (false, false, false, true) => LevelFilter::TRACE,
+        _ => LevelFilter::INFO,
     };
 
-    // a builder for `FmtSubscriber`.
-    let subscriber = FmtSubscriber::builder()
-        // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
-        // will be written to stdout.
-        .with_max_level(level_filter)
-        // Record an event when each span closes. This can be used to time our
-        // routes' durations!
+    let tracer = opentelemetry_jaeger::new_pipeline()
+        .with_service_name("gadget")
+        .with_trace_config(
+            trace::config()
+                .with_sampler(Sampler::AlwaysOn)
+                .with_id_generator(IdGenerator::default())
+        )
+        .install_batch(opentelemetry::runtime::Tokio)
+        .unwrap();
+        
+    let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+
+    let console_output = tracing_subscriber::fmt::layer()
         .with_span_events(FmtSpan::CLOSE)
-        // completes the builder.
-        .finish();
+        .event_format(LoggingFormat::default());
+
+    let subscriber = Registry::default()
+        .with(level_filter)
+        .with(otel_layer)
+        .with(console_output);
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
@@ -137,6 +189,14 @@ async fn main() -> Result<(), &'static str> {
                 .into_raw_response(warp::http::StatusCode::NOT_FOUND)
         }))
         .with(warp::log("api"))
+        .with(warp::trace(|info| {
+            // Create a span using tracing macros
+            tracing::info_span!(
+                "request",
+                method = %info.method(),
+                path = %info.path(),
+            )
+        }))
         .with(warp::log::custom(admin::track_status));
 
     let listen_server: SocketAddr = matches

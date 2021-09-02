@@ -7,15 +7,21 @@ edition = "2018"
 
 [features]
 default = ["postgres"]
-postgres = ["diesel", "r2d2"]
+postgres = ["diesel", "diesel-tracing", "r2d2"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"]}
 diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"], optional = true  }
+diesel-tracing = { version = "0.1", features = ["postgres"], optional = true  }
 clap = { version = "2.33" }
 dotenv = "0.15.0"
 chrono = { version = "0.4", features = ["serde"] }
 tracing-subscriber = { version = "0.2", features = ["registry"] }
+tracing-opentelemetry = "0.15"
+tracing-core = "*"
+opentelemetry = { version = "0.16", features = ["rt-tokio"] }
+opentelemetry-jaeger = { version = "0.15", features = ["rt-tokio"] }
+atty = "0.2"
 tracing = "0.1"
 r2d2 = { version = "0.8", optional = true }
 rand = "0.7"

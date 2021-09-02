@@ -73,6 +73,7 @@ impl JsonBackend {
 }
 
 impl super::Backend for JsonBackend {
+    #[tracing::instrument(skip(self))]
     fn get_redirect(&self, redirect_ref: &str) -> RowChange<RedirectModel> {
         match self.storage.read() {
             Ok(vec) => {
@@ -88,6 +89,7 @@ impl super::Backend for JsonBackend {
         }
     }
 
+    #[tracing::instrument(skip(self))]
     fn create_redirect(
         &self,
         new_alias: &str,
@@ -115,6 +117,7 @@ impl super::Backend for JsonBackend {
         result
     }
 
+    #[tracing::instrument(skip(self))]
     fn update_redirect(
         &self,
         redirect_ref: &str,
@@ -140,6 +143,7 @@ impl super::Backend for JsonBackend {
         result
     }
 
+    #[tracing::instrument(skip(self))]
     fn delete_redirect(&self, redirect_ref: &str) -> RowChange<usize> {
         let mut result = RowChange::NotFound;
         match self.storage.write() {
@@ -159,6 +163,7 @@ impl super::Backend for JsonBackend {
         result
     }
 
+    #[tracing::instrument(skip(self))]
     fn get_all(&self, page: u64, limit: usize) -> RowChange<Vec<RedirectModel>> {
         let begin: usize = limit * page as usize;
         let end: usize = begin + limit;

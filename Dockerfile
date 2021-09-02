@@ -8,7 +8,8 @@ COPY ./Cargo.toml ./Cargo.toml
 COPY gadget-server ./gadget-server
 
 # this build step will cache your dependencies
-RUN cargo install --no-default-features --path ./gadget-server
+RUN cargo install --path ./gadget-server
+RUN /usr/local/cargo/bin/gadget --help
 
 FROM node:13.5-stretch as node-builder
 

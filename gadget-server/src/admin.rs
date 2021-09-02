@@ -27,6 +27,7 @@ lazy_static! {
     .unwrap();
 }
 
+#[tracing::instrument]
 pub fn metrics_endpoint() -> impl warp::Reply {
     let encoder = TextEncoder::new();
     let metric_families = prometheus::gather();

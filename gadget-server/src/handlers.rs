@@ -66,13 +66,13 @@ impl ResponseMessage {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct NewRedirect {
     alias: String,
     destination: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct UpdateRedirect {
     destination: String,
 }
@@ -105,6 +105,7 @@ pub async fn favicon() -> Result<impl warp::Reply, Infallible> {
     Ok(StatusCode::NOT_FOUND)
 }
 
+#[instrument(skip(context))]
 pub async fn delete_redirect(
     path: String,
     context: Arc<RequestContext>,
@@ -129,6 +130,7 @@ pub fn json_body<T: DeserializeOwned + Send>(
     warp::body::content_length_limit(1024 * 16).and(warp::body::json())
 }
 
+#[instrument(skip(context))]
 pub async fn new_redirect_json(
     info: NewRedirect,
     user: UserDetails,
@@ -165,6 +167,7 @@ pub async fn new_redirect_json(
     }
 }
 
+#[instrument(skip(context))]
 pub async fn update_redirect(
     info: String,
     dest: UpdateRedirect,
@@ -194,6 +197,7 @@ pub async fn update_redirect(
     }
 }
 
+#[instrument(skip(context))]
 pub async fn list_redirects(context: Arc<RequestContext>) -> Result<impl warp::Reply, Infallible> {
     let resp = match context.backend.get_all(0, 10000) {
         RowChange::Value(v) => {
@@ -242,6 +246,7 @@ pub async fn get_redirect(
     }
 }
 
+#[tracing::instrument(skip(context))]
 pub async fn find_redirect(
     path: warp::filters::path::Tail,
     context: Arc<RequestContext>,
@@ -283,6 +288,7 @@ pub async fn find_redirect(
     }
 }
 
+#[derive(Deserialize, Debug)]
 pub struct UserDetails {
     pub username: String,
 }

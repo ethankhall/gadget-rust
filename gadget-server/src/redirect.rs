@@ -98,6 +98,7 @@ impl AliasRedirect {
 }
 
 impl Redirect for AliasRedirect {
+    #[tracing::instrument(skip(self))]
     fn get_destination(&self, input: &str) -> String {
         let parsed_input = match urlencoding::decode(input) {
             Ok(s) => s.to_string(),
