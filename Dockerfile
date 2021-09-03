@@ -5,7 +5,17 @@ WORKDIR /gadget
 # copy over your manifests
 COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
-COPY gadget-server ./gadget-server
+
+RUN USER=root cargo new --bin gadget-server
+COPY gadget-server/Cargo.toml /gadget/gadget-server/Cargo.toml
+WORKDIR /gadget/gadget-server
+
+RUN cargo build --release
+RUN rm src/*.rs
+RUN rm /gadget/target/release/deps/gadget*
+
+WORKDIR /gadget
+ADD gadget-server /gadget/gadget-server
 
 # this build step will cache your dependencies
 RUN cargo install --path ./gadget-server

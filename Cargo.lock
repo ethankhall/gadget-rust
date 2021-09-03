@@ -599,6 +599,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-core",
+ "tracing-log",
  "tracing-opentelemetry",
  "tracing-subscriber",
  "tracing-timing",

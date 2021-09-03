@@ -21,6 +21,18 @@ services:
     image: openzipkin/zipkin:latest
     ports:
       - "9411:9411"
+  
+  # gadget:
+  #   image: 5eabf949f84b
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     - DATABASE_URL=postgresql://postgres:password@postgres:5432/postgres
+  #     - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://otel-collector:4317
+  #   depends_on:
+  #     - otel-collector
+  #   links:
+  #     - otel-collector
 
   # Collector
   otel-collector:

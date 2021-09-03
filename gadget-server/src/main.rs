@@ -13,7 +13,8 @@ use tracing::{error, level_filters::LevelFilter};
 use tracing_timing::{Builder, Histogram};
 use tracing_subscriber::{Registry, layer::SubscriberExt, fmt::format::FmtSpan};
 
-use opentelemetry::{KeyValue, sdk::{trace::{self, IdGenerator, Sampler}, Resource}};
+use opentelemetry_otlp::WithExportConfig;
+use opentelemetry::{sdk::{trace::{self, IdGenerator, Sampler}}};
 
 use crate::backend::BackendContainer;
 
@@ -83,6 +84,7 @@ async fn main() -> Result<(), &'static str> {
         (@arg ui_directory: --("ui-path") +takes_value env("UI_PATH") default_value("./public") "Where should the UI be served from?")
         (@arg listen_server: --listen +takes_value default_value("0.0.0.0:8080") "What port to should the main app listen on?")
         (@arg listen_metrics: --("listen-metrics") +takes_value default_value("0.0.0.0:8081") "Where should the metrics listen on?")
+        (@arg otel_collector: --("opentelemetry-collector") +takes_value env("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT") default_value("http://localhost:4317") "The URL to publish metrics to.")
         (@arg DB_CONNECTION: --("database-url") +required +takes_value env("DATABASE_URL") "URL Database")
     )
     .get_matches();
@@ -107,9 +109,12 @@ async fn main() -> Result<(), &'static str> {
             trace::config()
                 .with_sampler(Sampler::AlwaysOn)
                 .with_id_generator(IdGenerator::default())
-                .with_resource(Resource::new(vec![KeyValue::new("service.name", "gadget")]))
         )
-        .with_exporter(opentelemetry_otlp::new_exporter().tonic())
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+            .tonic()
+            .with_endpoint(matches.value_of("otel_collector").unwrap())
+        )
         .install_batch(opentelemetry::runtime::Tokio)
         .unwrap();
         
@@ -126,6 +131,8 @@ async fn main() -> Result<(), &'static str> {
         .with(console_output);
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+
+    tracing_log::LogTracer::init().expect("logging to work correctly");
 
     let backend_url = matches
         .value_of("DB_CONNECTION")
