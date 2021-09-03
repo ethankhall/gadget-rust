@@ -14,6 +14,8 @@ use tracing_timing::{Builder, Histogram};
 use tracing_subscriber::{Registry, layer::SubscriberExt};
 use tracing_subscriber::fmt::format::{Format, JsonFields};
 
+use opentelemetry::sdk::propagation::TraceContextPropagator;
+use opentelemetry::{global};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry::{sdk::{trace::{self, IdGenerator, Sampler}}};
 
@@ -66,6 +68,7 @@ async fn main() -> Result<(), &'static str> {
         _ => LevelFilter::INFO,
     };
 
+    global::set_text_map_propagator(TraceContextPropagator::new());
     let timing = Builder::default().layer_informed(|_s: &_, _e: &_| Histogram::new_with_max(1_000_000, 2).unwrap());
     let tracer = opentelemetry_otlp::new_pipeline()
         .tracing()
@@ -85,7 +88,7 @@ async fn main() -> Result<(), &'static str> {
     let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
 
     let console_output = tracing_subscriber::fmt::layer()
-        .event_format(Format::default().json())
+        .event_format(Format::default().json().flatten_event(true))
         .fmt_fields(JsonFields::new());
 
     let subscriber = Registry::default()
@@ -162,15 +165,7 @@ async fn main() -> Result<(), &'static str> {
             handlers::ResponseMessage::from("not found")
                 .into_raw_response(warp::http::StatusCode::NOT_FOUND)
         }))
-        .with(warp::log("api"))
-        .with(warp::trace(|info| {
-            // Create a span using tracing macros
-            tracing::info_span!(
-                "request",
-                method = %info.method().as_str(),
-                path = %info.path(),
-            )
-        }))
+        .with(warp::trace::request())
         .with(warp::log::custom(admin::track_status));
 
     let listen_server: SocketAddr = matches
