@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 use std::sync::Arc;
-use tracing::{instrument, debug, error, info, trace, warn};
+use tracing::{debug, error, info, instrument, trace, warn};
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use url::Url;

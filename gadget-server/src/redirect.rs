@@ -1,5 +1,5 @@
 use crate::backend::RedirectModel;
-use tracing::{warn, debug};
+use tracing::{debug, warn};
 
 pub trait Redirect {
     fn get_destination(&self, input: &str) -> String;
@@ -113,7 +113,7 @@ impl Redirect for AliasRedirect {
         let part = if inputs.len() <= self.destinations.len() {
             match self.destinations.get(inputs.len()) {
                 Some(dest) => dest,
-                None => self.destinations.last().unwrap()
+                None => self.destinations.last().unwrap(),
             }
         } else {
             self.destinations.last().unwrap()

@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 use std::sync::Arc;
-use tracing::{info};
+use tracing::info;
 
 use diesel::r2d2::ConnectionManager;
 use r2d2::Pool;

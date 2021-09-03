@@ -1,5 +1,6 @@
 #[cfg(feature = "postgres")]
-#[macro_use] extern crate diesel;
+#[macro_use]
+extern crate diesel;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -10,14 +11,23 @@ use warp::Filter;
 
 use clap::{clap_app, crate_version};
 use tracing::{error, level_filters::LevelFilter};
+use tracing_subscriber::{
+    fmt::format::{Format, JsonFields},
+    layer::SubscriberExt,
+    Registry,
+};
 use tracing_timing::{Builder, Histogram};
-use tracing_subscriber::{Registry, layer::SubscriberExt};
-use tracing_subscriber::fmt::format::{Format, JsonFields};
 
-use opentelemetry::sdk::propagation::TraceContextPropagator;
-use opentelemetry::{global};
+use opentelemetry::{
+    global,
+    sdk::{
+        propagation::TraceContextPropagator,
+        trace::{self, IdGenerator, Sampler},
+        Resource,
+    },
+    KeyValue,
+};
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry::{sdk::{trace::{self, IdGenerator, Sampler}}};
 
 use crate::backend::BackendContainer;
 
@@ -69,22 +79,24 @@ async fn main() -> Result<(), &'static str> {
     };
 
     global::set_text_map_propagator(TraceContextPropagator::new());
-    let timing = Builder::default().layer_informed(|_s: &_, _e: &_| Histogram::new_with_max(1_000_000, 2).unwrap());
+    let timing = Builder::default()
+        .layer_informed(|_s: &_, _e: &_| Histogram::new_with_max(1_000_000, 2).unwrap());
     let tracer = opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_trace_config(
             trace::config()
                 .with_sampler(Sampler::AlwaysOn)
                 .with_id_generator(IdGenerator::default())
+                .with_resource(Resource::new(vec![KeyValue::new("service.name", "gadget")])),
         )
         .with_exporter(
             opentelemetry_otlp::new_exporter()
-            .tonic()
-            .with_endpoint(matches.value_of("otel_collector").unwrap())
+                .tonic()
+                .with_endpoint(matches.value_of("otel_collector").unwrap()),
         )
         .install_batch(opentelemetry::runtime::Tokio)
         .unwrap();
-        
+
     let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
 
     let console_output = tracing_subscriber::fmt::layer()
