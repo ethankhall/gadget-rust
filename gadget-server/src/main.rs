@@ -10,17 +10,16 @@ use warp::Filter;
 
 use clap::{clap_app, crate_version};
 use tracing::{error, level_filters::LevelFilter};
-use opentelemetry::sdk::{trace::{self, IdGenerator, Sampler}};
-use tracing_subscriber::{fmt::format::FmtSpan};
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::Registry;
+use tracing_timing::{Builder, Histogram};
+use tracing_subscriber::{Registry, layer::SubscriberExt, fmt::format::FmtSpan};
+
+use opentelemetry::{KeyValue, sdk::{trace::{self, IdGenerator, Sampler}, Resource}};
 
 use crate::backend::BackendContainer;
 
 use tracing_core::{Subscriber, Event};
-use tracing_subscriber::fmt::{FormatEvent, FormatFields, FmtContext};
+use tracing_subscriber::fmt::{format::Format, FormatEvent, FormatFields, FmtContext};
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::fmt::format::Format;
 
 enum LoggingFormat {
     Json(Format<tracing_subscriber::fmt::format::Json>),
@@ -101,13 +100,16 @@ async fn main() -> Result<(), &'static str> {
         _ => LevelFilter::INFO,
     };
 
-    let tracer = opentelemetry_jaeger::new_pipeline()
-        .with_service_name("gadget")
+    let timing = Builder::default().layer_informed(|_s: &_, _e: &_| Histogram::new_with_max(1_000_000, 2).unwrap());
+    let tracer = opentelemetry_otlp::new_pipeline()
+        .tracing()
         .with_trace_config(
             trace::config()
                 .with_sampler(Sampler::AlwaysOn)
                 .with_id_generator(IdGenerator::default())
+                .with_resource(Resource::new(vec![KeyValue::new("service.name", "gadget")]))
         )
+        .with_exporter(opentelemetry_otlp::new_exporter().tonic())
         .install_batch(opentelemetry::runtime::Tokio)
         .unwrap();
         
@@ -120,6 +122,7 @@ async fn main() -> Result<(), &'static str> {
     let subscriber = Registry::default()
         .with(level_filter)
         .with(otel_layer)
+        .with(timing)
         .with(console_output);
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
