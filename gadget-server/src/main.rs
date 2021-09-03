@@ -11,49 +11,13 @@ use warp::Filter;
 use clap::{clap_app, crate_version};
 use tracing::{error, level_filters::LevelFilter};
 use tracing_timing::{Builder, Histogram};
-use tracing_subscriber::{Registry, layer::SubscriberExt, fmt::format::FmtSpan};
+use tracing_subscriber::{Registry, layer::SubscriberExt};
+use tracing_subscriber::fmt::format::{Format, JsonFields};
 
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry::{sdk::{trace::{self, IdGenerator, Sampler}}};
 
 use crate::backend::BackendContainer;
-
-use tracing_core::{Subscriber, Event};
-use tracing_subscriber::fmt::{format::Format, FormatEvent, FormatFields, FmtContext};
-use tracing_subscriber::registry::LookupSpan;
-
-enum LoggingFormat {
-    Json(Format<tracing_subscriber::fmt::format::Json>),
-    Pretty(Format<tracing_subscriber::fmt::format::Pretty>),
-}
-
-impl Default for LoggingFormat {
-    fn default() -> Self {
-        if atty::is(atty::Stream::Stdout) {
-            LoggingFormat::Pretty(tracing_subscriber::fmt::format().pretty())
-        } else {
-            LoggingFormat::Json(tracing_subscriber::fmt::format().json())
-        }
-    }
-}
-
-impl<S, N> FormatEvent<S, N> for LoggingFormat
-where
-    S: Subscriber + for<'a> LookupSpan<'a>,
-    N: for<'a> FormatFields<'a> + 'static,
-{
-    fn format_event(
-        &self,
-        ctx: &FmtContext<'_, S, N>,
-        writer: &mut dyn std::fmt::Write,
-        event: &Event<'_>,
-    ) -> std::fmt::Result {
-        match self {
-            LoggingFormat::Json(j) => j.format_event(ctx, writer, event),
-            LoggingFormat::Pretty(p) => p.format_event(ctx, writer, event),
-        }
-    }
-}
 
 #[macro_export]
 macro_rules! s {
@@ -121,8 +85,8 @@ async fn main() -> Result<(), &'static str> {
     let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
 
     let console_output = tracing_subscriber::fmt::layer()
-        .with_span_events(FmtSpan::CLOSE)
-        .event_format(LoggingFormat::default());
+        .event_format(Format::default().json())
+        .fmt_fields(JsonFields::new());
 
     let subscriber = Registry::default()
         .with(level_filter)
@@ -132,7 +96,7 @@ async fn main() -> Result<(), &'static str> {
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
-    tracing_log::LogTracer::init().expect("logging to work correctly");
+    let _init = tracing_log::LogTracer::init().expect("logging to work correctly");
 
     let backend_url = matches
         .value_of("DB_CONNECTION")
@@ -203,7 +167,7 @@ async fn main() -> Result<(), &'static str> {
             // Create a span using tracing macros
             tracing::info_span!(
                 "request",
-                method = %info.method(),
+                method = %info.method().as_str(),
                 path = %info.path(),
             )
         }))
