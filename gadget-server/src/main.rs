@@ -192,7 +192,8 @@ async fn main() -> Result<(), &'static str> {
         .map(admin::metrics_endpoint)
         .or(warp::path!("status").map(|| {
             handlers::ResponseMessage::from("OK").into_raw_response(warp::http::StatusCode::OK)
-        }));
+        }))
+        .with(warp::trace::request());
 
     let listen_metrics: SocketAddr = matches
         .value_of("listen_metrics")
