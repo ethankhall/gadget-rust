@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: login to registry
       run: docker login docker.pkg.github.com --username ethankhall --password ${{ secrets.GITHUB_TOKEN }}
     - name: Build the Docker image

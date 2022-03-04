@@ -1,0 +1,20 @@
+[package]
+name = "gadget-database"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+sea-orm = { version = "0.6", features = [ "sqlx-postgres", "runtime-tokio-rustls", "macros" ] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0"
+tracing-attributes = "0.1"
+async-trait = "0.1"
+tracing = "0.1"
+rand = "0.7"
+sqlx = { version = "0.5", features = [ "postgres", "migrate" ] }
+
+[dev-dependencies]
+serial_test = "0.5.1"
+tokio = { version = "1", features = ["full"] }
+gadget-test-utils = { path = "../test-utils" }

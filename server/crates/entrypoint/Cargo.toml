@@ -1,0 +1,47 @@
+[package]
+name = "gadget"
+version = "0.1.0"
+authors = ["Ethan Hall <ethan@ehdev.io>"]
+edition = "2021"
+
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"]}
+clap = { version = "3.1.5", features = ["derive", "cargo", "env", "regex", "wrap_help", "unicode"] }
+dotenv = "0.15.0"
+chrono = { version = "0.4", features = ["serde"] }
+tracing-subscriber = { version = "0.2", features = ["registry"] }
+tracing-opentelemetry = "0.15"
+tracing-core = "*"
+tracing-log = "0.1"
+opentelemetry = { version = "0.16", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.9" }
+atty = "0.2"
+tracing = "0.1"
+rand = "0.7"
+lazy_static = "1.4"
+prometheus = { version = "0.12", features = ["process"] }
+serde_json = "1.0"
+futures-util = "0.3"
+futures = "0.3"
+mime_guess = "2.0"
+url = "2.1"
+tokio = { version = "1", features = ["full"] }
+urlencoding = "2.1"
+thiserror = "1.0"
+anyhow = "1.0"
+tracing-attributes = "0.1"
+async-trait = "0.1.52"
+sea-orm = { version = "0.6", features = [ "sqlx-postgres", "runtime-tokio-rustls", "macros" ] }
+human-panic = "1.0.3"
+warp = "0.3.2"
+uuid = { version = "0.8", features = ["serde", "v4"] }
+
+gadget-migration = { path = "../migration" }
+gadget-database = { path = "../database" }
+gadget-api = { path = "../api" }
+gadget-backend = { path = "../backend" }
+
+[dev-dependencies]
+serial_test = "0.5.1"
+json = "*"

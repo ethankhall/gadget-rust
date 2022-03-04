@@ -1,0 +1,21 @@
+[package]
+name = "gadget-test-utils"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+sea-orm = { version = "0.6", features = [ "sqlx-postgres", "sqlx-sqlite", "runtime-tokio-rustls", "macros" ] }
+# serial_test = "0.5.1"
+json = "*"
+http = "*"
+bytes = "*"
+tokio = { version = "1", features = ["full"] }
+tracing-log = "0.1"
+tracing-subscriber = { version = "0.2", features = ["registry"] }
+gadget-migration = { path = "../migration" }
+sqlx = { version = "0.5", features = [ "postgres", "migrate" ] }
+tracing = "0.1"
+assert-json-diff = "2.0.1"
+serde = { version = "1.0", features = ["derive"]}
+serde_json = "1.0"

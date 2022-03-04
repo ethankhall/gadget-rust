@@ -37,11 +37,3 @@ cd gadget-ui
 yarn
 yarn build
 ```
-
-### Run Gadget
-
-In a shell, run in the repo root.
-
-```
-cargo run -- --database-url file://$(pwd)/sample/data.json --ui-path=$(pwd)/gadget-ui/dist
-```

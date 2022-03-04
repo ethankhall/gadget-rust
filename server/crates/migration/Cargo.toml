@@ -1,0 +1,9 @@
+[package]
+name = "gadget-migration"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+sea-schema = { version = "0.5.0", default-features = false, features = [ "migration", "debug-print", "sqlx-postgres", "runtime-tokio-rustls" ] }
+sea-orm = { version = "0.6", features = [ "sqlx-postgres", "runtime-tokio-rustls", "macros" ] }

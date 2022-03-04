@@ -1,4 +1,8 @@
-pattern = 'v0.3.%d'
+pattern = 'v0.2.%d'
 message-template = "Created {version} for release."
 
 [cargo]
+path = "."
+
+[npm]
+path = "ui"
