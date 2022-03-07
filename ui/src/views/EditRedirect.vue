@@ -1,39 +1,44 @@
 <template>
   <div class="home">
+    <div v-if="updated">
+      <div class="alert alert-primary" role="alert">
+        The redirect was updated.
+      </div>
+    </div>
     <div v-if="errored">
       <div class="alert alert-danger" role="alert">
         There was an error creating the redirect. {{ this.errorMessage }}
       </div>
     </div>
     <div v-if="!loading">
-      <b-form @submit="onUpdate" @reset="onAbort">
-        <b-form-group id="input-group-1" label="Alias:" label-for="input-1">
-          <b-form-input
+      <form @submit="onUpdate" @reset="onAbort">
+        <div class="row mb-3">
+          <label for="input-1" class="col-sm-2 col-form-label">Alias:</label>
+          <div class="col-sm-10">
+          <input
             id="input-1"
             type="text"
             class="form-control"
             v-model="redirect.alias"
-            disabled
-          ></b-form-input>
-        </b-form-group>
-
-        <b-form-group
-          id="input-group-2"
-          label="Destination:"
-          label-for="input-2"
-        >
-          <b-form-input
+            disabled>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <label for="input-2" class="col-sm-2 col-form-label">Destination:</label>
+          <div class="col-sm-10">
+          <input
             id="input-2"
             type="text"
             class="form-control"
-            v-model="redirect.destination"
+             v-model="redirect.destination"
             required
-          ></b-form-input>
-        </b-form-group>
+            >
+          </div>
+        </div>
 
-        <b-button pill type="submit" variant="primary">Update</b-button>&nbsp;
-        <b-button pill type="reset" variant="danger">Cancel</b-button>
-      </b-form>
+        <button pill type="submit" variant="primary">Update</button>&nbsp;
+        <button pill type="reset" variant="danger">Cancel</button>
+      </form>
     </div>
   </div>
 </template>
@@ -49,7 +54,9 @@ export default {
       loading: false,
       redirect: null,
       errored: null,
-      errorMessage: ""
+      updated: null,
+      errorMessage: "",
+      redirect_id: this.$route.params.id,
     };
   },
   created() {
@@ -74,30 +81,27 @@ export default {
       };
 
       axios
-        .put(`/_gadget/api/redirect/${this.$route.params.id}`, data)
+        .put(`/_gadget/api/redirect/${this.redirect_id}`, data)
         .then(response => {
-          this.$bvToast.toast(`Redirect was updated successfuly.`, {
-            title: "Success",
-            autoHideDelay: 2000,
-            appendToast: true
-          });
+          this.updated = true;
           this.errored = false;
         })
         .catch(error => {
           this.errored = true;
+          console.error(error);
           if (error.response) {
             this.errorMessage = `Error message: '${error.response.data.message}'`;
           }
         });
     },
     fetchData() {
-      this.error = this.redirect = null;
+      this.error = this.redirect = this.updated = null;
       this.loading = true;
 
       axios
-        .get(`/_gadget/api/redirect/${this.$route.params.id}`)
+        .get(`/_gadget/api/redirect/${this.redirect_id}`)
         .then(response => {
-          this.redirect = response.data;
+          this.redirect = response.data.data;
         })
         .catch(error => {
           // eslint-disable-next-line

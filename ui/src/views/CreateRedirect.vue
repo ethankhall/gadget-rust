@@ -6,34 +6,36 @@
       </div>
     </div>
 
-    <b-form @submit="onSubmit">
-      <b-form-group id="input-group-1" label="Alias:" label-for="input-1">
-        <b-form-input
-          id="input-1"
+<form @submit="onSubmit">
+    <div class="mb-3">
+      <label for="input-1" class="form-label" >Alias</label>
+      <input id="input-1"
           type="text"
           class="form-control"
           v-model="form.alias"
           placeholder="jira"
-          required
-        ></b-form-input>
-      </b-form-group>
-
-      <b-form-group id="input-group-2" label="Destination:" label-for="input-2">
-        <b-form-input
-          id="input-2"
+          required>
+    </div>
+    <div class="mb-3">
+      <label for="input-2" class="form-label">Destination</label>
+      <input id="input-2"
           type="text"
           class="form-control"
           v-model="form.destination"
           placeholder="http://example.com/{some/path/$1}"
-          required
-        ></b-form-input>
-      </b-form-group>
+          required />
+    </div>
 
-      <b-button pill type="submit" variant="primary">Submit</b-button>&nbsp;
+      <div class="col-auto">
+          <button type="submit" class="btn btn-primary">Submit</button>
+      </div>
+      &nbsp;
       <router-link :to="{ name: 'home' }">
-        <b-button pill type="reset" variant="danger">Cancel</b-button>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-danger mb-3">Cancel</button>
+        </div>
       </router-link>
-    </b-form>
+    </form>
   </div>
 </template>
 

@@ -5,10 +5,10 @@
 
         {{ redirect.alias }} => {{ redirect.destination }}
 
-        <b-form @submit="onDelete" @abort="onAbort">
-          <b-button type="abort" variant="primary">Cancel</b-button> | 
-          <b-button type="submit" variant="danger">Delete</b-button>
-        </b-form>
+        <form @submit="onDelete" @abort="onAbort">
+          <button type="abort" class="btn btn-primary">Cancel</button> | 
+          <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
       </div>
   </div>
 </template>
@@ -23,7 +23,8 @@ export default {
     return {
       loading: false,
       redirect: null,
-      error: null
+      error: null,
+      redirect_id: this.$route.params.id,
     };
   },
    created() {
@@ -31,19 +32,15 @@ export default {
     // already being observed
     this.fetchData();
   },
-  watch: {
-    // call again the method if the route changes
-    $route: "fetchData"
-  },
   methods: {
     fetchData() {
       this.error = this.redirect = null;
       this.loading = true;
 
       axios
-        .get(`/_gadget/api/redirect/${this.$route.params.id}`)
+        .get(`/_gadget/api/redirect/${this.redirect_id}`)
         .then(response => {
-          this.redirect = response.data;
+          this.redirect = response.data.data;
         })
         .catch(error => {
           // eslint-disable-next-line
@@ -55,7 +52,7 @@ export default {
     onDelete(evt) {
       evt.preventDefault();
       axios
-        .delete(`/_gadget/api/redirect/${this.$route.params.id}`)
+        .delete(`/_gadget/api/redirect/${this.redirect_id}`)
         .then(response => {
           this.$router.push({name: "home"});
         })
