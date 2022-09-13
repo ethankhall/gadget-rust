@@ -11,8 +11,7 @@ use warp::{
     Filter,
 };
 
-use gadget_lib::prelude::{Backend, RedirectModel};
-use gadget_lib::prelude::{AliasRedirect, Redirect};
+use gadget_lib::prelude::{Backend, RedirectModel, GadgetLibError, AliasRedirect, Redirect};
 
 #[derive(Clone)]
 pub struct RequestContext<'a> {
@@ -111,11 +110,11 @@ pub async fn delete_redirect(
     let resp = context.backend.delete_redirect(&path);
 
     match resp {
-        RowChange::NotFound => {
+        Err(GadgetLibError::RedirectDoesNotExists(_)) => {
             ResponseMessage::from("not found").into_response(StatusCode::NOT_FOUND)
         }
-        RowChange::Value(_) => ResponseMessage::from("ok").into_response(StatusCode::OK),
-        RowChange::Err(e) => {
+        Ok(_) => ResponseMessage::from("ok").into_response(StatusCode::OK),
+        Err(e) => {
             error!("Unable to update redirect: {:?}", e);
             ResponseMessage::from(format!("Unexpected error: {:?}", e))
                 .into_response(StatusCode::INTERNAL_SERVER_ERROR)
@@ -145,21 +144,16 @@ pub async fn new_redirect_json(
         .backend
         .create_redirect(&info.alias, &info.destination, &user.username)
     {
-        RowChange::Value(result) => {
+        Ok(result) => {
             let api_model: ApiRedirect = result.into();
             Ok(warp::reply::with_status(
                 warp::reply::json(&api_model),
                 StatusCode::CREATED,
             ))
-        }
-        RowChange::Err(e) => {
+        },
+        Err(e) => {
             warn!("Unable to create redirect: {:?}", e);
             ResponseMessage::from(format!("Unable to create redirect: {:?}", e))
-                .into_response(StatusCode::INTERNAL_SERVER_ERROR)
-        }
-        RowChange::NotFound => {
-            warn!("Unable to create redirect");
-            ResponseMessage::from("Unable to create redirect")
                 .into_response(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
@@ -183,11 +177,11 @@ pub async fn update_redirect(
         .update_redirect(&info, &dest.destination, &user.username);
 
     match resp {
-        RowChange::NotFound => {
+        Ok(_) => ResponseMessage::from("ok").into_response(StatusCode::OK),
+        Err(GadgetLibError::RedirectDoesNotExists(_)) => {
             ResponseMessage::from("not found").into_response(StatusCode::NOT_FOUND)
-        }
-        RowChange::Value(_) => ResponseMessage::from("ok").into_response(StatusCode::OK),
-        RowChange::Err(e) => {
+        },
+        Err(e) => {
             error!("Unable to update redirect: {:?}", e);
             ResponseMessage::from(format!("Unexpected error: {:?}", e))
                 .into_response(StatusCode::INTERNAL_SERVER_ERROR)
@@ -198,12 +192,12 @@ pub async fn update_redirect(
 #[instrument(skip(context))]
 pub async fn list_redirects(context: Arc<RequestContext<'_>>) -> Result<impl warp::Reply, Infallible> {
     let resp = match context.backend.get_all(0, 10000) {
-        RowChange::Value(v) => {
+        Ok(v) => {
             let data: Vec<ApiRedirect> = v.into_iter().map(|x| x.into()).collect();
             RedirectList { redirects: data }
         }
-        RowChange::NotFound => RedirectList { redirects: vec![] },
-        RowChange::Err(e) => {
+        Err(GadgetLibError::RedirectDoesNotExists(_)) => RedirectList { redirects: vec![] },
+        Err(e) => {
             warn!("Unable to get redirect: {:?}", e);
             return ResponseMessage::from("Unable to get redirect")
                 .into_response(StatusCode::INTERNAL_SERVER_ERROR);
@@ -226,17 +220,17 @@ pub async fn get_redirect(
     context: Arc<RequestContext<'_>>,
 ) -> Result<impl warp::Reply, Infallible> {
     match context.backend.get_redirect(&info) {
-        RowChange::Value(value) => {
+        Ok(Some(value)) => {
             let redirect: ApiRedirect = value.into();
             Ok(warp::reply::with_status(
                 warp::reply::json(&redirect),
                 StatusCode::OK,
             ))
         }
-        RowChange::NotFound => {
+        Ok(None) | Err(GadgetLibError::RedirectDoesNotExists(_)) => {
             ResponseMessage::from("Unable to get redirect").into_response(StatusCode::NOT_FOUND)
         }
-        RowChange::Err(e) => {
+        Err(e) => {
             warn!("Unable to get redirect: {:?}", e);
             ResponseMessage::from("Unable to get redirect")
                 .into_response(StatusCode::INTERNAL_SERVER_ERROR)
@@ -264,20 +258,20 @@ pub async fn find_redirect(
     };
 
     match context.backend.get_redirect(redirect_ref) {
-        RowChange::Value(value) => {
+        Ok(Some(value)) => {
             let redirect = AliasRedirect::from(value);
             Ok(warp::http::Response::builder()
                 .status(StatusCode::TEMPORARY_REDIRECT)
                 .header(LOCATION, redirect.get_destination(&info))
                 .body(hyper::Body::empty())
                 .unwrap())
-        }
-        RowChange::NotFound => Ok(warp::http::Response::builder()
+        },
+        Ok(None) | Err(GadgetLibError::RedirectDoesNotExists(_)) => Ok(warp::http::Response::builder()
             .status(StatusCode::TEMPORARY_REDIRECT)
             .header(LOCATION, format!("/_gadget/ui?search={}", &info))
             .body(hyper::Body::empty())
             .unwrap()),
-        RowChange::Err(e) => {
+        Err(e) => {
             warn!("Unable to get redirect: {:?}", e);
             ResponseMessage::from("Unable to get redirect")
                 .into_response(StatusCode::INTERNAL_SERVER_ERROR)
