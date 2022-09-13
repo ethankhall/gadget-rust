@@ -37,3 +37,4 @@ warp = "0.3"
 hyper = "0.14"
 tokio = { version = "1", features = ["full"] }
 urlencoding = "2.1"
+gadget-lib = { path = "../gadget-lib" }

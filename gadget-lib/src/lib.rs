@@ -1,9 +1,42 @@
-use crate::backend::RedirectModel;
+mod backend;
+mod error;
+
+use crate::backend::prelude::*;
+use prelude::{Result, GadgetLibError};
+use std::path::PathBuf;
 use tracing::{debug, warn};
+
+pub mod prelude {
+    pub use crate::backend::prelude::*;
+    pub use crate::error::GadgetLibError;
+    pub use crate::{AliasRedirect, Redirect};
+    pub use crate::create_backend;
+
+    pub type Result<T> = std::result::Result<T, GadgetLibError>;
+}
+
+pub fn create_backend<'a>(url: String) -> Result<Box<dyn Backend<'a>>> {
+    if url.starts_with("file://") {
+        let path = PathBuf::from(url);
+        let json_backend = JsonBackend::new(path)?;
+        Ok(Box::new(json_backend))
+    } else if url.starts_with("memory://") {
+        Ok(Box::new(InMemoryBackend::new(Default::default())))
+    } else {
+        Err(GadgetLibError::UnknownBackend(url))
+    }
+}
 
 pub trait Redirect {
     fn get_destination(&self, input: &str) -> String;
     fn matches(&self, alias: &str) -> bool;
+}
+
+#[macro_export]
+macro_rules! s {
+    ($x:expr) => {
+        $x.to_string()
+    };
 }
 
 #[derive(Debug, Clone, PartialEq)]

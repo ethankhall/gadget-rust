@@ -1,7 +1,3 @@
-#[cfg(feature = "postgres")]
-#[macro_use]
-extern crate diesel;
-
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -29,7 +25,7 @@ use opentelemetry::{
 };
 use opentelemetry_otlp::WithExportConfig;
 
-use crate::backend::BackendContainer;
+use gadget_lib::prelude::{create_backend};
 
 #[macro_export]
 macro_rules! s {
@@ -39,9 +35,7 @@ macro_rules! s {
 }
 
 mod admin;
-mod backend;
 mod handlers;
-mod redirect;
 mod ui;
 
 #[tokio::main]
@@ -118,7 +112,7 @@ async fn main() -> Result<(), &'static str> {
         .expect("To have a DB connection")
         .to_string();
 
-    let backend = match BackendContainer::new(backend_url) {
+    let backend = match create_backend(backend_url) {
         Ok(backend) => backend,
         Err(e) => {
             error!("{}", e);
