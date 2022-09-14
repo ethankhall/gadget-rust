@@ -2,7 +2,7 @@ mod backend;
 mod error;
 
 use crate::backend::prelude::*;
-use prelude::{Result, GadgetLibError};
+use prelude::{LibResult, GadgetLibError};
 use std::path::PathBuf;
 use tracing::{debug, warn};
 
@@ -12,10 +12,10 @@ pub mod prelude {
     pub use crate::{AliasRedirect, Redirect};
     pub use crate::create_backend;
 
-    pub type Result<T> = std::result::Result<T, GadgetLibError>;
+    pub type LibResult<T> = std::result::Result<T, GadgetLibError>;
 }
 
-pub fn create_backend<'a>(url: String) -> Result<Box<dyn Backend<'a>>> {
+pub fn create_backend<'a>(url: String) -> LibResult<Box<dyn Backend<'a>>> {
     if url.starts_with("file://") {
         let path = PathBuf::from(url);
         let json_backend = JsonBackend::new(path)?;
@@ -30,13 +30,6 @@ pub fn create_backend<'a>(url: String) -> Result<Box<dyn Backend<'a>>> {
 pub trait Redirect {
     fn get_destination(&self, input: &str) -> String;
     fn matches(&self, alias: &str) -> bool;
-}
-
-#[macro_export]
-macro_rules! s {
-    ($x:expr) => {
-        $x.to_string()
-    };
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -62,7 +55,7 @@ pub struct AliasRedirect {
 
 impl From<RedirectModel> for AliasRedirect {
     fn from(value: RedirectModel) -> Self {
-        AliasRedirect::new(value.alias, value.destination)
+        AliasRedirect::new(&value.alias, &value.destination)
     }
 }
 
@@ -78,11 +71,11 @@ fn do_test() {
 }
 
 impl AliasRedirect {
-    fn new(alias: String, destination: String) -> Self {
+    pub fn new(alias: &str, destination: &str) -> Self {
         let alias = if !alias.starts_with('/') {
             format!("/{}", alias)
         } else {
-            alias
+            alias.to_owned()
         };
 
         let mut destinations = Vec::new();
@@ -97,17 +90,17 @@ impl AliasRedirect {
 
         if last_open > first_close {
             warn!("Destination has mismatched params: `{}`", destination);
-            destinations.push(DestPart::new(number_of_components, destination.clone()));
+            destinations.push(DestPart::new(number_of_components, destination.to_owned()));
         } else if parts.is_empty() {
-            destinations.push(DestPart::new(number_of_components, destination.clone()));
+            destinations.push(DestPart::new(number_of_components, destination.to_owned()));
         } else if parts.len() % 2 != 0 {
             warn!("Destination has missmatched `{{` | `}}`: `{}`", destination);
-            destinations.push(DestPart::new(number_of_components, destination.clone()));
+            destinations.push(DestPart::new(number_of_components, destination.to_owned()));
         } else {
-            let mut pre = s!("");
-            let mut post = s!("");
+            let mut pre = "".to_owned();
+            let mut post = "".to_owned();
 
-            destinations.push(DestPart::new(number_of_components, s!(base)));
+            destinations.push(DestPart::new(number_of_components, base.to_owned()));
             number_of_components += 1;
 
             while !parts.is_empty() {
@@ -174,14 +167,14 @@ impl Redirect for AliasRedirect {
 fn long_url_with_spaces() {
     use urlencoding::encode;
 
-    let alias = AliasRedirect::new(s!("google"), s!("https://duckduckgo.com/{?q=$1}"));
+    let alias = AliasRedirect::new("google", "https://duckduckgo.com/{?q=$1}");
 
     assert_eq!(
         "https://duckduckgo.com/?q=let me google that for you",
         &alias.get_destination("google let me google that for you")
     );
 
-    let alias = AliasRedirect::new(s!("google"), s!("https://duckduckgo.com/{?q=$1}"));
+    let alias = AliasRedirect::new("google", "https://duckduckgo.com/{?q=$1}");
 
     assert_eq!(
         "https://duckduckgo.com/?q=let me google that for you",
@@ -191,7 +184,7 @@ fn long_url_with_spaces() {
 
 #[test]
 fn with_just_query() {
-    let alias = AliasRedirect::new(s!("google"), s!("https://duckduckgo.com/{?q=$1}"));
+    let alias = AliasRedirect::new("google", "https://duckduckgo.com/{?q=$1}");
 
     assert_eq!("https://duckduckgo.com/", &alias.get_destination("google"));
 }

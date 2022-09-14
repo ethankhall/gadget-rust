@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use crate::backend::prelude::*;
 use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
-use crate::prelude::{Result};
+use crate::prelude::{LibResult};
 
 pub struct JsonBackend {
     in_memory: InMemoryBackend,
@@ -16,14 +16,14 @@ struct JsonFile {
 }
 
 impl JsonFile {
-    fn save(&self, path: &PathBuf) -> Result<()> {
+    fn save(&self, path: &PathBuf) -> LibResult<()> {
         let contents = serde_json::to_string_pretty(&self).unwrap();
         Ok(std::fs::write(path, contents)?)
     }
 }
 
 impl JsonBackend {
-    pub fn new(file_path: PathBuf) -> Result<Self> {
+    pub fn new(file_path: PathBuf) -> LibResult<Self> {
         let backend = if !file_path.exists() {
             warn!("{:?} does not exist, creating new file.", file_path);
             let backend = InMemoryBackend::new(Default::default());
@@ -50,7 +50,7 @@ impl JsonBackend {
         })
     }
 
-    fn save(&self) -> Result<()> {
+    fn save(&self) -> LibResult<()> {
         let redirects = self.in_memory.get_internal_model().unwrap();
 
         let json_file = JsonFile { redirects };
@@ -60,7 +60,7 @@ impl JsonBackend {
 }
 
 impl<'a> Backend<'a> for JsonBackend {
-    fn get_redirect(&self, redirect_ref: &str) -> Result<Option<RedirectModel>> {
+    fn get_redirect(&self, redirect_ref: &str) -> LibResult<Option<RedirectModel>> {
         self.in_memory.get_redirect(redirect_ref)
     }
 
@@ -69,7 +69,7 @@ impl<'a> Backend<'a> for JsonBackend {
         new_alias: &str,
         new_destination: &str,
         username: &str,
-    ) -> Result<RedirectModel> {
+    ) -> LibResult<RedirectModel> {
         let result = self
             .in_memory
             .create_redirect(new_alias, new_destination, username);
@@ -82,7 +82,7 @@ impl<'a> Backend<'a> for JsonBackend {
         redirect_ref: &str,
         new_dest: &str,
         username: &str,
-    ) -> Result<usize> {
+    ) -> LibResult<RedirectModel> {
         let result = self
             .in_memory
             .update_redirect(redirect_ref, new_dest, username);
@@ -90,13 +90,13 @@ impl<'a> Backend<'a> for JsonBackend {
         result
     }
 
-    fn delete_redirect(&self, redirect_ref: &str) -> Result<usize> {
+    fn delete_redirect(&self, redirect_ref: &str) -> LibResult<usize> {
         let result = self.in_memory.delete_redirect(redirect_ref);
         self.save()?;
         result
     }
 
-    fn get_all(&self, page: u64, limit: usize) -> Result<Vec<RedirectModel>> {
+    fn get_all(&self, page: u64, limit: usize) -> LibResult<Vec<RedirectModel>> {
         self.in_memory.get_all(page, limit)
     }
 }

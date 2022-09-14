@@ -1,108 +1,88 @@
-struct KVStore {
-    context: worker::Context,
+use crate::Result;
+use gadget_lib::prelude::*;
+use serde::{Deserialize, Serialize};
+use worker::kv::KvStore;
+
+pub struct WorkerStore {
+    store: KvStore,
+    backend: InMemoryBackend,
+    pub jwt_key: Option<String>,
 }
 
-impl gadget_lib::Backend for KVStore {
-    #[tracing::instrument(skip(self))]
-    fn get_redirect(&self, redirect_ref: &str) -> RowChange<RedirectModel> {
-        match self.storage.read() {
-            Ok(vec) => {
-                if let Some(dest) = vec.iter().find(|redirect| {
-                    redirect.alias == redirect_ref
-                }) {
-                    RowChange::Value(dest.clone())
-                } else {
-                    RowChange::NotFound
-                }
-            }
-            Err(e) => RowChange::Err(format!("{}", e)),
-        }
+#[derive(Serialize, Deserialize)]
+struct KVStorageModel {
+    redirects: Vec<RedirectModel>,
+}
+
+impl WorkerStore {
+    pub async fn new(env: &worker::Env) -> Result<Self> {
+        let kv = env.kv("gadget")?;
+        let data: KVStorageModel = match kv.get("default").json().await? {
+            Some(value) => value,
+            None => KVStorageModel {
+                redirects: Default::default(),
+            },
+        };
+
+        let key = kv.get("key").text().await?;
+
+        let in_mem = InMemoryBackend::new(data.redirects);
+
+        Ok(WorkerStore {
+            backend: in_mem,
+            store: kv,
+            jwt_key: key,
+        })
     }
 
-    #[tracing::instrument(skip(self))]
-    fn create_redirect(
+    async fn save(&self) -> Result<()> {
+        let redirects = self.backend.get_internal_model().unwrap();
+        let stroage = KVStorageModel { redirects };
+
+        self.store.put("default", stroage)?.execute().await?;
+
+        Ok(())
+    }
+}
+
+impl WorkerStore {
+    pub async fn get_redirect(&self, redirect_ref: &str) -> Result<Option<RedirectModel>> {
+        Ok(self.backend.get_redirect(redirect_ref)?)
+    }
+
+    pub async fn create_redirect(
         &self,
         new_alias: &str,
         new_destination: &str,
         username: &str,
-    ) -> RowChange<RedirectModel> {
-        self.context.
-        let result = match self.storage.write() {
-            Ok(mut vec) => {
-                if vec.iter().any(|redirect| redirect.alias == new_alias) {
-                    return RowChange::Err("Alias already exists".to_string());
-                }
-
-                let model =
-                    RedirectModel::new(new_alias, new_destination, Some(username.to_string()));
-                vec.push(model.clone());
-
-                RowChange::Value(model)
-            }
-            Err(e) => RowChange::Err(format!("{}", e)),
-        };
-
-        self.save();
-        result
+    ) -> Result<RedirectModel> {
+        let result = self
+            .backend
+            .create_redirect(new_alias, new_destination, username);
+        self.save().await?;
+        Ok(result?)
     }
 
-    #[tracing::instrument(skip(self))]
-    fn update_redirect(
+    pub async fn update_redirect(
         &self,
         redirect_ref: &str,
         new_dest: &str,
         username: &str,
-    ) -> RowChange<usize> {
-        let mut result = RowChange::NotFound;
-        match self.storage.write() {
-            Ok(mut vec) => {
-                for i in 0..vec.len() {
-                    if vec[i].alias == redirect_ref {
-                        vec[i].set_destination(new_dest);
-                        vec[i].update_username(Some(username));
-                        result = RowChange::Value(1);
-                        break;
-                    }
-                }
-            }
-            Err(e) => result = RowChange::Err(format!("{}", e)),
-        }
-
-        self.save();
-        result
+    ) -> Result<RedirectModel> {
+        let result = self
+            .backend
+            .update_redirect(redirect_ref, new_dest, username);
+        self.save().await?;
+        Ok(result?)
     }
 
-    #[tracing::instrument(skip(self))]
-    fn delete_redirect(&self, redirect_ref: &str) -> RowChange<usize> {
-        let mut result = RowChange::NotFound;
-        match self.storage.write() {
-            Ok(mut vec) => {
-                for i in 0..vec.len() {
-                    if vec[i].alias == redirect_ref {
-                        vec.remove(i);
-                        result = RowChange::Value(1);
-                        break;
-                    }
-                }
-            }
-            Err(e) => result = RowChange::Err(format!("{}", e)),
-        }
-
-        self.save();
-        result
+    pub async fn delete_redirect(&self, redirect_ref: &str) -> Result<usize> {
+        let result = self.backend.delete_redirect(redirect_ref);
+        self.save().await?;
+        Ok(result?)
     }
 
-    #[tracing::instrument(skip(self))]
-    fn get_all(&self, page: u64, limit: usize) -> RowChange<Vec<RedirectModel>> {
-        let begin: usize = limit * page as usize;
-        let end: usize = begin + limit;
-        match self.storage.read() {
-            Ok(v) => {
-                let end = std::cmp::min(end, v.len());
-                let data = v.get((begin)..(end)).unwrap_or_default().to_vec();
-                RowChange::Value(data)
-            }
-            Err(e) => RowChange::Err(e.to_string()),
-        }
+    pub async fn get_all(&self, page: u64, limit: usize) -> Result<Vec<RedirectModel>> {
+        Ok(self.backend.get_all(page, limit)?)
     }
 }

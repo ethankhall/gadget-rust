@@ -1,6 +1,6 @@
 use crate::backend::prelude::*;
 use std::sync::{Arc, RwLock};
-use crate::prelude::{Result, GadgetLibError};
+use crate::prelude::{LibResult, GadgetLibError};
 
 
 pub struct InMemoryBackend {
@@ -14,14 +14,14 @@ impl InMemoryBackend {
         }
     }
 
-    pub fn get_internal_model(&self) -> Result<Vec<RedirectModel>> {
+    pub fn get_internal_model(&self) -> LibResult<Vec<RedirectModel>> {
         Ok(self.storage.read()?.clone())
     }
 }
 
 impl<'a> super::Backend<'a> for InMemoryBackend {
     #[tracing::instrument(skip(self))]
-    fn get_redirect(&self, redirect_ref: &str) -> Result<Option<RedirectModel>> {
+    fn get_redirect(&self, redirect_ref: &str) -> LibResult<Option<RedirectModel>> {
         let vec = self.storage.read()?;
         if let Some(dest) = vec
             .iter()
@@ -39,7 +39,7 @@ impl<'a> super::Backend<'a> for InMemoryBackend {
         new_alias: &str,
         new_destination: &str,
         username: &str,
-    ) -> Result<RedirectModel> {
+    ) -> LibResult<RedirectModel> {
         let mut vec = self.storage.write()?;
         if vec.iter().any(|redirect| redirect.alias == new_alias) {
             return Err(GadgetLibError::RedirectExists("Alias already exists".to_string()));
@@ -54,20 +54,20 @@ impl<'a> super::Backend<'a> for InMemoryBackend {
     }
 
     #[tracing::instrument(skip(self))]
-    fn update_redirect(&self, redirect_ref: &str, new_dest: &str, username: &str) -> Result<usize> {
+    fn update_redirect(&self, redirect_ref: &str, new_dest: &str, username: &str) -> LibResult<RedirectModel> {
         let mut vec = self.storage.write()?;
         for i in 0..vec.len() {
             if vec[i].public_ref == redirect_ref || vec[i].alias == redirect_ref {
                 vec[i].set_destination(new_dest);
                 vec[i].update_username(Some(username));
-                return Ok(1);
+                return Ok(vec[i].clone());
             }
         }
         Err(GadgetLibError::RedirectDoesNotExists(redirect_ref.to_string()))
     }
 
     #[tracing::instrument(skip(self))]
-    fn delete_redirect(&self, redirect_ref: &str) -> Result<usize> {
+    fn delete_redirect(&self, redirect_ref: &str) -> LibResult<usize> {
         let mut vec = self.storage.write()?;
         for i in 0..vec.len() {
             if vec[i].public_ref == redirect_ref || vec[i].alias == redirect_ref {
@@ -79,7 +79,7 @@ impl<'a> super::Backend<'a> for InMemoryBackend {
     }
 
     #[tracing::instrument(skip(self))]
-    fn get_all(&self, page: u64, limit: usize) -> Result<Vec<RedirectModel>> {
+    fn get_all(&self, page: u64, limit: usize) -> LibResult<Vec<RedirectModel>> {
         let begin: usize = limit * page as usize;
         let end: usize = begin + limit;
         let v = self.storage.read()?;

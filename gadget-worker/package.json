@@ -2,10 +2,10 @@
 	"private": true,
 	"version": "0.0.0",
 	"scripts": {
-		"deploy": "wrangler publish src/lib.rs",
-		"dev": "wrangler dev src/lib.rs --local"
+		"deploy": "wrangler publish build/worker/shim.mjs",
+		"dev": "wrangler dev build/worker/shim.mjs --local"
 	},
 	"devDependencies": {
-		"wrangler": "^2.0.0"
+		"wrangler": "2.1.3"
 	}
 }
