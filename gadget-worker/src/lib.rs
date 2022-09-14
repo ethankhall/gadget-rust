@@ -58,7 +58,6 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> worker::Resu
         .put_async("/_api/redirect/*id", handle_update)
         .post_async("/_api/redirect", handle_create)
         .delete_async("/_api/redirect/*path", handle_any_delete)
-        .get_async("/_api/redirect", handle_list)
         .get_async("/*path", handle_any_get)
         .run(req, env)
         .await
@@ -209,12 +208,14 @@ async fn handle_any_delete(
     }
 }
 
-async fn handle_list(_req: Request, ctx: RouteContext<WorkerStore>) -> worker::Result<Response> {
-    let resp = ctx.data.get_all(0, 1000).await.unwrap();
-    return Response::from_json(&resp);
-}
 
-async fn handle_any_get(_req: Request, ctx: RouteContext<WorkerStore>) -> worker::Result<Response> {
+async fn handle_any_get(req: Request, ctx: RouteContext<WorkerStore>) -> worker::Result<Response> {
+
+    if req.path() == "/_api/redirect" {
+        let resp = ctx.data.get_all(0, 1000).await.unwrap();
+        return Response::from_json(&resp);
+    }
+
     let path = match extract_param(&ctx, "path") {
         Some(id) => id,
         None => {
