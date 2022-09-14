@@ -25,7 +25,7 @@ use opentelemetry::{
 };
 use opentelemetry_otlp::WithExportConfig;
 
-use gadget_lib::prelude::{create_backend};
+use gadget_lib::prelude::create_backend;
 
 #[macro_export]
 macro_rules! s {

@@ -12,7 +12,12 @@ pub trait Backend<'a> {
         username: &str,
     ) -> LibResult<RedirectModel>;
 
-    fn update_redirect(&self, redirect_ref: &str, new_dest: &str, username: &str) -> LibResult<RedirectModel>;
+    fn update_redirect(
+        &self,
+        redirect_ref: &str,
+        new_dest: &str,
+        username: &str,
+    ) -> LibResult<RedirectModel>;
 
     fn delete_redirect(&self, redirect_ref: &str) -> LibResult<usize>;
 

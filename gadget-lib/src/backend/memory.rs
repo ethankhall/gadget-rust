@@ -1,7 +1,6 @@
 use crate::backend::prelude::*;
+use crate::prelude::{GadgetLibError, LibResult};
 use std::sync::{Arc, RwLock};
-use crate::prelude::{LibResult, GadgetLibError};
-
 
 pub struct InMemoryBackend {
     storage: Arc<RwLock<Vec<RedirectModel>>>,
@@ -42,7 +41,9 @@ impl<'a> super::Backend<'a> for InMemoryBackend {
     ) -> LibResult<RedirectModel> {
         let mut vec = self.storage.write()?;
         if vec.iter().any(|redirect| redirect.alias == new_alias) {
-            return Err(GadgetLibError::RedirectExists("Alias already exists".to_string()));
+            return Err(GadgetLibError::RedirectExists(
+                "Alias already exists".to_string(),
+            ));
         }
 
         let id = vec.iter().map(|x| x.redirect_id).max().unwrap_or(0) + 1;
@@ -54,7 +55,12 @@ impl<'a> super::Backend<'a> for InMemoryBackend {
     }
 
     #[tracing::instrument(skip(self))]
-    fn update_redirect(&self, redirect_ref: &str, new_dest: &str, username: &str) -> LibResult<RedirectModel> {
+    fn update_redirect(
+        &self,
+        redirect_ref: &str,
+        new_dest: &str,
+        username: &str,
+    ) -> LibResult<RedirectModel> {
         let mut vec = self.storage.write()?;
         for i in 0..vec.len() {
             if vec[i].public_ref == redirect_ref || vec[i].alias == redirect_ref {
@@ -63,7 +69,9 @@ impl<'a> super::Backend<'a> for InMemoryBackend {
                 return Ok(vec[i].clone());
             }
         }
-        Err(GadgetLibError::RedirectDoesNotExists(redirect_ref.to_string()))
+        Err(GadgetLibError::RedirectDoesNotExists(
+            redirect_ref.to_string(),
+        ))
     }
 
     #[tracing::instrument(skip(self))]
@@ -75,7 +83,9 @@ impl<'a> super::Backend<'a> for InMemoryBackend {
                 return Ok(1);
             }
         }
-        Err(GadgetLibError::RedirectDoesNotExists(redirect_ref.to_string()))
+        Err(GadgetLibError::RedirectDoesNotExists(
+            redirect_ref.to_string(),
+        ))
     }
 
     #[tracing::instrument(skip(self))]

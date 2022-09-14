@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use crate::backend::prelude::*;
+use crate::prelude::LibResult;
 use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
-use crate::prelude::{LibResult};
 
 pub struct JsonBackend {
     in_memory: InMemoryBackend,

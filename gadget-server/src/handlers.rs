@@ -11,7 +11,7 @@ use warp::{
     Filter,
 };
 
-use gadget_lib::prelude::{Backend, RedirectModel, GadgetLibError, AliasRedirect, Redirect};
+use gadget_lib::prelude::{AliasRedirect, Backend, GadgetLibError, Redirect, RedirectModel};
 
 #[derive(Clone)]
 pub struct RequestContext<'a> {
@@ -22,7 +22,7 @@ unsafe impl std::marker::Send for RequestContext<'_> {}
 
 unsafe impl std::marker::Sync for RequestContext<'_> {}
 
-impl <'a> RequestContext<'a> {
+impl<'a> RequestContext<'a> {
     pub fn new(backend: Box<dyn Backend<'a>>) -> Self {
         RequestContext {
             backend: Arc::new(backend),
@@ -150,7 +150,7 @@ pub async fn new_redirect_json(
                 warp::reply::json(&api_model),
                 StatusCode::CREATED,
             ))
-        },
+        }
         Err(e) => {
             warn!("Unable to create redirect: {:?}", e);
             ResponseMessage::from(format!("Unable to create redirect: {:?}", e))
@@ -180,7 +180,7 @@ pub async fn update_redirect(
         Ok(_) => ResponseMessage::from("ok").into_response(StatusCode::OK),
         Err(GadgetLibError::RedirectDoesNotExists(_)) => {
             ResponseMessage::from("not found").into_response(StatusCode::NOT_FOUND)
-        },
+        }
         Err(e) => {
             error!("Unable to update redirect: {:?}", e);
             ResponseMessage::from(format!("Unexpected error: {:?}", e))
@@ -190,7 +190,9 @@ pub async fn update_redirect(
 }
 
 #[instrument(skip(context))]
-pub async fn list_redirects(context: Arc<RequestContext<'_>>) -> Result<impl warp::Reply, Infallible> {
+pub async fn list_redirects(
+    context: Arc<RequestContext<'_>>,
+) -> Result<impl warp::Reply, Infallible> {
     let resp = match context.backend.get_all(0, 10000) {
         Ok(v) => {
             let data: Vec<ApiRedirect> = v.into_iter().map(|x| x.into()).collect();
@@ -265,12 +267,14 @@ pub async fn find_redirect(
                 .header(LOCATION, redirect.get_destination(&info))
                 .body(hyper::Body::empty())
                 .unwrap())
-        },
-        Ok(None) | Err(GadgetLibError::RedirectDoesNotExists(_)) => Ok(warp::http::Response::builder()
-            .status(StatusCode::TEMPORARY_REDIRECT)
-            .header(LOCATION, format!("/_gadget/ui?search={}", &info))
-            .body(hyper::Body::empty())
-            .unwrap()),
+        }
+        Ok(None) | Err(GadgetLibError::RedirectDoesNotExists(_)) => {
+            Ok(warp::http::Response::builder()
+                .status(StatusCode::TEMPORARY_REDIRECT)
+                .header(LOCATION, format!("/_gadget/ui?search={}", &info))
+                .body(hyper::Body::empty())
+                .unwrap())
+        }
         Err(e) => {
             warn!("Unable to get redirect: {:?}", e);
             ResponseMessage::from("Unable to get redirect")

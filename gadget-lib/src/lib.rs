@@ -2,15 +2,15 @@ mod backend;
 mod error;
 
 use crate::backend::prelude::*;
-use prelude::{LibResult, GadgetLibError};
+use prelude::{GadgetLibError, LibResult};
 use std::path::PathBuf;
 use tracing::{debug, warn};
 
 pub mod prelude {
     pub use crate::backend::prelude::*;
+    pub use crate::create_backend;
     pub use crate::error::GadgetLibError;
     pub use crate::{AliasRedirect, Redirect};
-    pub use crate::create_backend;
 
     pub type LibResult<T> = std::result::Result<T, GadgetLibError>;
 }
