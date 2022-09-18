@@ -15,6 +15,46 @@ pub mod prelude {
     pub type LibResult<T> = std::result::Result<T, GadgetLibError>;
 }
 
+pub mod api {
+
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Serialize, Deserialize)]
+    pub struct RedirectList {
+        pub redirects: Vec<ApiRedirect>,
+    }
+
+    #[derive(Deserialize, Serialize, Debug)]
+    pub struct ApiRedirect {
+        pub alias: String,
+        pub destination: String,
+        pub created_by: Option<UserDetails>,
+    }
+
+    #[derive(Deserialize, Serialize, Debug)]
+    pub struct UpdateRedirect {
+        pub destination: String,
+        pub created_by: Option<UserDetails>,
+    }
+
+    #[derive(Deserialize, Serialize, Debug)]
+    pub struct UserDetails {
+        pub username: String,
+    }
+
+    impl From<crate::prelude::RedirectModel> for ApiRedirect {
+        fn from(model: crate::prelude::RedirectModel) -> Self {
+            ApiRedirect {
+                alias: model.alias,
+                destination: model.destination,
+                created_by: model.created_by.map(|name| UserDetails {
+                    username: name.clone(),
+                }),
+            }
+        }
+    }
+}
+
 pub fn create_backend<'a>(url: String) -> LibResult<Box<dyn Backend<'a>>> {
     if url.starts_with("file://") {
         let path = PathBuf::from(url);

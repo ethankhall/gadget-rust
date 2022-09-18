@@ -1,8 +1,9 @@
+use gadget_lib::api::*;
 use std::convert::Infallible;
 use std::sync::Arc;
 use tracing::{debug, error, info, instrument, trace, warn};
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 use warp::{
     http::header::LOCATION,
@@ -11,7 +12,7 @@ use warp::{
     Filter,
 };
 
-use gadget_lib::prelude::{AliasRedirect, Backend, GadgetLibError, Redirect, RedirectModel};
+use gadget_lib::prelude::{AliasRedirect, Backend, GadgetLibError, Redirect};
 
 #[derive(Clone)]
 pub struct RequestContext<'a> {
@@ -65,39 +66,6 @@ impl ResponseMessage {
     }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct NewRedirect {
-    alias: String,
-    destination: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct UpdateRedirect {
-    destination: String,
-}
-
-#[derive(Serialize)]
-pub struct ApiRedirect {
-    alias: String,
-    destination: String,
-    created_by: Option<String>,
-}
-
-impl Into<ApiRedirect> for RedirectModel {
-    fn into(self) -> ApiRedirect {
-        ApiRedirect {
-            alias: self.alias,
-            destination: self.destination,
-            created_by: self.created_by,
-        }
-    }
-}
-
-#[derive(Serialize)]
-struct RedirectList {
-    redirects: Vec<ApiRedirect>,
-}
-
 pub async fn favicon() -> Result<impl warp::Reply, Infallible> {
     Ok(StatusCode::NOT_FOUND)
 }
@@ -129,7 +97,7 @@ pub fn json_body<T: DeserializeOwned + Send>(
 
 #[instrument(skip(context))]
 pub async fn new_redirect_json(
-    info: NewRedirect,
+    info: ApiRedirect,
     user: UserDetails,
     context: Arc<RequestContext<'_>>,
 ) -> Result<impl warp::Reply, Infallible> {
@@ -284,19 +252,12 @@ pub async fn find_redirect(
     }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct UserDetails {
-    pub username: String,
-}
-
-impl From<Option<&HeaderValue>> for UserDetails {
-    fn from(value: Option<&HeaderValue>) -> Self {
-        UserDetails {
-            username: value
-                .map(|x| x.to_str().unwrap())
-                .map(|x| x.to_string())
-                .unwrap_or_else(|| "unknown".to_string()),
-        }
+fn extract_user_details(value: Option<&'_ HeaderValue>) -> UserDetails {
+    UserDetails {
+        username: value
+            .map(|x| x.to_str().unwrap())
+            .map(|x| x.to_string())
+            .unwrap_or_else(|| "unknown".to_string()),
     }
 }
 
@@ -304,9 +265,9 @@ pub fn extract_user() -> impl Filter<Extract = (UserDetails,), Error = Infallibl
     warp::filters::header::headers_cloned().map(|headers: HeaderMap| {
         trace!("Headers: {:?}", headers);
         if headers.contains_key("token-claim-sub") {
-            UserDetails::from(headers.get("token-claim-sub"))
+            extract_user_details(headers.get("token-claim-sub"))
         } else if headers.contains_key("x-amzn-oidc-identity") {
-            UserDetails::from(headers.get("x-amzn-oidc-identity"))
+            extract_user_details(headers.get("x-amzn-oidc-identity"))
         } else {
             UserDetails {
                 username: "unknown".to_string(),

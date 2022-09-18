@@ -1,9 +1,7 @@
 use crate::storage::WorkerStore;
-use gadget_lib::prelude::{GadgetLibError, Redirect};
-use hmac::{Hmac, Mac};
-use jwt::{Header, RegisteredClaims, Token, VerifyWithKey};
+use gadget_lib::api::*;
+use gadget_lib::prelude::{AliasRedirect, GadgetLibError, Redirect, RedirectModel};
 use serde::{Deserialize, Serialize};
-use sha2::Sha256;
 use thiserror::Error;
 use worker::kv::KvError;
 use worker::*;
@@ -63,35 +61,6 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> worker::Resu
         .await
 }
 
-fn validate_auth(req: &Request, token: &Option<String>) -> Option<RegisteredClaims> {
-    let auth_header = req
-        .headers()
-        .get("Authorization")
-        .unwrap_or_default()
-        .unwrap_or_default();
-    if !auth_header.starts_with("Bearer ") {
-        return None;
-    }
-
-    let token = match token {
-        Some(value) => value,
-        None => return None,
-    };
-
-    let auth_header = auth_header.replace("Bearer ", "");
-    let key: Hmac<Sha256> = match Hmac::new_from_slice(token.as_bytes()) {
-        Ok(hmac) => hmac,
-        Err(_) => return None,
-    };
-
-    let token: Token<Header, RegisteredClaims, _> = match auth_header.verify_with_key(&key) {
-        Err(_) => return None,
-        Ok(value) => value,
-    };
-    let claims = token.claims();
-    Some(claims.clone())
-}
-
 fn extract_param(ctx: &RouteContext<WorkerStore>, param: &str) -> Option<String> {
     let mut id = match ctx.param(param) {
         None => return None,
@@ -109,22 +78,15 @@ fn extract_param(ctx: &RouteContext<WorkerStore>, param: &str) -> Option<String>
     Some(id)
 }
 
-#[derive(Deserialize, Debug)]
-pub struct NewRedirect {
-    alias: String,
-    destination: String,
-}
-
 async fn handle_create(
     mut req: Request,
     ctx: RouteContext<WorkerStore>,
 ) -> worker::Result<Response> {
-    let user = match validate_auth(&req, &ctx.data.jwt_key) {
-        None => return Response::error("unauthorized", 401),
-        Some(claim) => claim.subject.unwrap_or_else(|| "unknown".to_owned()),
-    };
-
-    let redirect: NewRedirect = req.json().await?;
+    let redirect: ApiRedirect = req.json().await?;
+    let user = redirect
+        .created_by
+        .map(|x| x.username)
+        .unwrap_or_else(|| "unknown".to_owned());
 
     match ctx
         .data
@@ -139,20 +101,10 @@ async fn handle_create(
     }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct UpdateRedirect {
-    destination: String,
-}
-
 async fn handle_update(
     mut req: Request,
     ctx: RouteContext<WorkerStore>,
 ) -> worker::Result<Response> {
-    let user = match validate_auth(&req, &ctx.data.jwt_key) {
-        None => return Response::error("unauthorized", 401),
-        Some(claim) => claim.subject.unwrap_or_else(|| "unknown".to_owned()),
-    };
-
     let id = match extract_param(&ctx, "id") {
         Some(id) => id,
         None => return Response::error("missing id", 400),
@@ -161,6 +113,10 @@ async fn handle_update(
     console_log!("Updating id {}", id);
 
     let redirect: UpdateRedirect = req.json().await?;
+    let user = redirect
+        .created_by
+        .map(|x| x.username)
+        .unwrap_or_else(|| "unknown".to_owned());
 
     match ctx
         .data
@@ -176,13 +132,9 @@ async fn handle_update(
 }
 
 async fn handle_any_delete(
-    req: Request,
+    _req: Request,
     ctx: RouteContext<WorkerStore>,
 ) -> worker::Result<Response> {
-    if validate_auth(&req, &ctx.data.jwt_key).is_none() {
-        return Response::error("unauthorized", 401);
-    }
-
     let path = match extract_param(&ctx, "path") {
         Some(id) => id,
         None => return Response::error("missing path", 400),
@@ -208,22 +160,27 @@ async fn handle_any_delete(
     }
 }
 
-
 async fn handle_any_get(req: Request, ctx: RouteContext<WorkerStore>) -> worker::Result<Response> {
-
     if req.path() == "/_api/redirect" {
-        let resp = ctx.data.get_all(0, 1000).await.unwrap();
-        return Response::from_json(&resp);
+        let resp = ctx
+            .data
+            .get_all(0, 1000)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(ApiRedirect::from)
+            .collect();
+        return Response::from_json(&RedirectList { redirects: resp });
     }
 
-    let path = match extract_param(&ctx, "path") {
-        Some(id) => id,
-        None => {
-            return worker::Response::error("Not found", 404);
+    if req.path().starts_with("/_api/redirect/") {
+        match get_redirect(&req.path().replace("/_api/redirect/", ""), &ctx.data).await {
+            Some(redirect) => return worker::Response::from_json(&ApiRedirect::from(redirect)),
+            None => return worker::Response::error("Not found", 404),
         }
-    };
+    }
 
-    let path = path.replace("%20", " ");
+    let path = req.path().replace("/", "").replace("%20", " ");
     let redirect_ref: Vec<&str> = path.split(' ').collect();
     let redirect_ref = match redirect_ref.first() {
         None => {
@@ -233,15 +190,22 @@ async fn handle_any_get(req: Request, ctx: RouteContext<WorkerStore>) -> worker:
     };
 
     console_debug!("Processing path {}", path);
-    match ctx.data.get_redirect(redirect_ref).await {
-        Ok(Some(value)) => {
-            let redirect = gadget_lib::AliasRedirect::from(value);
+    match get_redirect(redirect_ref, &ctx.data).await {
+        Some(value) => {
+            let redirect = AliasRedirect::from(value);
             worker::Response::redirect_with_status(
                 worker::Url::parse(&redirect.get_destination(&path))?,
                 307,
             )
         }
-        Ok(None) => worker::Response::error("Not found", 404),
-        Err(e) => worker::Response::error(e.to_string(), 501),
+        None => worker::Response::error("Not found", 404),
+    }
+}
+
+async fn get_redirect(path: &str, store: &WorkerStore) -> Option<RedirectModel> {
+    console_debug!("Processing path {}", path);
+    match store.get_redirect(path).await {
+        Ok(Some(value)) => Some(value),
+        _ => None,
     }
 }

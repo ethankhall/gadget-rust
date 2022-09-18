@@ -6,7 +6,6 @@ use worker::kv::KvStore;
 pub struct WorkerStore {
     store: KvStore,
     backend: InMemoryBackend,
-    pub jwt_key: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -24,14 +23,11 @@ impl WorkerStore {
             },
         };
 
-        let key = kv.get("key").text().await?;
-
         let in_mem = InMemoryBackend::new(data.redirects);
 
         Ok(WorkerStore {
             backend: in_mem,
             store: kv,
-            jwt_key: key,
         })
     }
 

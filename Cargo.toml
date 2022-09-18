@@ -4,6 +4,7 @@ members = [
     "gadget-server",
     "gadget-lib",
     "gadget-worker",
+    "gadget-cli",
 ]
 
 [profile.release]
