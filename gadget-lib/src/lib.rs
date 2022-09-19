@@ -2,6 +2,7 @@ mod backend;
 mod error;
 
 use crate::backend::prelude::*;
+use api::ApiRedirect;
 use prelude::{GadgetLibError, LibResult};
 use std::path::PathBuf;
 use tracing::{debug, warn};
@@ -69,6 +70,7 @@ pub fn create_backend<'a>(url: String) -> LibResult<Box<dyn Backend<'a>>> {
 
 pub trait Redirect {
     fn get_destination(&self, input: &str) -> String;
+    fn evaluate(&self, input: &str) -> String;
     fn matches(&self, alias: &str) -> bool;
 }
 
@@ -95,6 +97,11 @@ pub struct AliasRedirect {
 
 impl From<RedirectModel> for AliasRedirect {
     fn from(value: RedirectModel) -> Self {
+        AliasRedirect::new(&value.alias, &value.destination)
+    }
+}
+impl From<ApiRedirect> for AliasRedirect {
+    fn from(value: ApiRedirect) -> Self {
         AliasRedirect::new(&value.alias, &value.destination)
     }
 }
@@ -175,6 +182,18 @@ impl Redirect for AliasRedirect {
 
         let mut inputs: Vec<&str> = parsed_input.split(' ').collect();
         inputs.remove(0);
+        self.evaluate(&inputs.join(" "))
+    }
+
+    #[tracing::instrument(skip(self))]
+    fn evaluate(&self, input: &str) -> String {
+        let parsed_input = match urlencoding::decode(input) {
+            Ok(s) => s.to_string(),
+            Err(_) => input.to_owned(),
+        };
+
+        debug!("Parsed Input: {}", parsed_input);
+        let mut inputs: Vec<&str> = parsed_input.split(' ').collect();
 
         let part = if inputs.len() <= self.destinations.len() {
             match self.destinations.get(inputs.len()) {

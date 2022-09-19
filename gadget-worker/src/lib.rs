@@ -151,7 +151,7 @@ async fn handle_any_delete(
 
     match ctx.data.delete_redirect(redirect_ref).await {
         Ok(_) => Response::from_json(&StatusResponse {
-            status: "Not found".to_owned(),
+            status: "Deleted".to_owned(),
         }),
         Err(GadgetWorkerError::GadgetLibError(GadgetLibError::RedirectDoesNotExists(_))) => {
             worker::Response::error("Not found", 404)
