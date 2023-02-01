@@ -1,6 +1,6 @@
 use clap::{ArgGroup, Args, Parser, Subcommand, ValueEnum};
 use dotenv::dotenv;
-use gadget_lib::{api::{RedirectList, ApiRedirect, UpdateRedirect}, AliasRedirect, Redirect};
+use gadget_lib::{api::{RedirectList, ApiRedirect, UpdateRedirect}, AliasRedirect, Redirect, prelude::RedirectModel};
 use human_panic::setup_panic;
 use log::{debug, error, trace};
 use reqwest::{Method};
@@ -278,7 +278,7 @@ async fn run_create(args: &TupleArgs, api_opts: &ApiOptions) -> Result<(), CliEr
         created_by: None
     };
 
-    let body: ApiRedirect = api_opts
+    let body: RedirectModel = api_opts
         .make_request("/_api/redirect", Method::POST, Some(&redirect))
         .await?;
 
