@@ -1,64 +1,62 @@
-FROM rust:buster as rust-builder
+# syntax=docker/dockerfile:1.4
+FROM rust:bullseye as chef
+COPY rust-toolchain.toml rust-toolchain.toml
+RUN <<EOT
+#!/usr/bin/env bash
+set -euxo pipefail
 
-WORKDIR /gadget
-
-# copy over your manifests
-COPY ./Cargo.lock ./Cargo.lock
-COPY ./Cargo.toml ./Cargo.toml
-
-RUN USER=root cargo new --bin gadget-server
-COPY gadget-server/Cargo.toml /gadget/gadget-server/Cargo.toml
-WORKDIR /gadget/gadget-server
-
-RUN cargo build --release
-RUN rm src/*.rs
-RUN rm /gadget/target/release/deps/gadget*
-
-WORKDIR /gadget
-ADD gadget-server /gadget/gadget-server
-
-# this build step will cache your dependencies
-RUN cargo install --path ./gadget-server
-RUN /usr/local/cargo/bin/gadget --help
-
-FROM node:13.5-stretch as node-builder
-
-# Image to build website in
-WORKDIR /gadget
-
-COPY gadget-ui /gadget/gadget-ui
-WORKDIR /gadget/gadget-ui
-
-RUN yarn
-RUN yarn build
-
-# verify linked deps
-FROM debian:buster-slim
-
-RUN apt-get update && apt-get install -y libpq5 && apt-get clean 
-
-# copy the build artifact from the build stage
-COPY --from=rust-builder /usr/local/cargo/bin/gadget /app/bin/gadget
-RUN /app/bin/gadget --help
-
-# our final base
-FROM debian:buster-slim
-
-RUN apt-get update && apt-get install -y libpq5 && apt-get clean 
-
-# copy the build artifact from the build stage
-COPY --from=rust-builder /usr/local/cargo/bin/gadget /app/bin/gadget
-COPY --from=node-builder /gadget/gadget-ui/dist /app/public
-COPY gadget-server/migrations /app/migrations
-
-ENV UI_PATH /app/public
-ENV TINI_VERSION v0.18.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-RUN chmod +x /tini
+apt-get update
+apt-get install protobuf-compiler -y
+cargo install cargo-chef
+EOT
 
 WORKDIR /app
 
-ENTRYPOINT ["/tini", "--"]
-# set the startup command to run your binary
-CMD [ "/app/bin/gadget"]
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare  --recipe-path recipe.json
 
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+# Build dependencies - this is the caching Docker layer!
+RUN cargo chef cook --release --recipe-path recipe.json
+COPY . .
+
+FROM builder as dep_check
+RUN rustup toolchain install nightly --allow-downgrade --profile minimal
+
+RUN <<EOT
+#!/usr/bin/env bash
+set -euxo pipefail
+
+cargo +nightly build --release
+cargo +nightly install cargo-udeps --locked
+cargo +nightly udeps --release
+EOT
+
+FROM builder as test
+RUN <<EOT
+#!/usr/bin/env bash
+set -euxo pipefail
+
+rustup component add rustfmt clippy
+
+cargo test --release
+cargo fmt --check
+cargo clippy --release
+EOT
+
+FROM scratch as check
+COPY --from=dep_check /app/recipe.json recipe-dep-check.json
+COPY --from=test /app/recipe.json recipe-test.json
+
+FROM builder as release
+RUN cargo build --release --bin gadget-server
+RUN /app/target/release/gadget-server --help
+
+FROM debian:bullseye-slim AS runtime
+RUN apt-get update && apt-get install tini -y
+WORKDIR /app
+COPY --from=release /app/target/release/gadget-server /usr/local/bin
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["/usr/local/bin/gadget-server"]

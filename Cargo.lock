@@ -708,38 +708,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gadget"
-version = "0.1.0"
-dependencies = [
- "atty",
- "chrono",
- "clap 2.33.3",
- "dotenv",
- "futures",
- "futures-util",
- "gadget-lib",
- "hyper",
- "lazy_static",
- "mime_guess",
- "opentelemetry",
- "opentelemetry-otlp",
- "prometheus",
- "rand 0.7.3",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-core",
- "tracing-log",
- "tracing-opentelemetry",
- "tracing-subscriber",
- "tracing-timing",
- "url",
- "urlencoding",
- "warp",
-]
-
-[[package]]
 name = "gadget-cli"
 version = "0.1.0"
 dependencies = [
@@ -777,6 +745,38 @@ dependencies = [
  "tracing-log",
  "url",
  "urlencoding",
+]
+
+[[package]]
+name = "gadget-server"
+version = "0.1.0"
+dependencies = [
+ "atty",
+ "chrono",
+ "clap 2.33.3",
+ "dotenv",
+ "futures",
+ "futures-util",
+ "gadget-lib",
+ "hyper",
+ "lazy_static",
+ "mime_guess",
+ "opentelemetry",
+ "opentelemetry-otlp",
+ "prometheus",
+ "rand 0.7.3",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+ "tracing-timing",
+ "url",
+ "urlencoding",
+ "warp",
 ]
 
 [[package]]
