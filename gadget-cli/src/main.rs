@@ -292,11 +292,11 @@ async fn run_update(args: &TupleArgs, api_opts: &ApiOptions) -> Result<(), CliEr
         created_by: None
     };
 
-    let body: ApiRedirect = api_opts
+    let body: RedirectModel = api_opts
         .make_request(&format!("/_api/redirect/{}", args.alias), Method::PUT, Some(&redirect))
         .await?;
-
-    println!("Created: {}", body.alias);
+    debug!("Response from worker: {:?}", body);
+    println!("Updated {} to point at {}", body.alias, body.destination);
     Ok(())
 }
 

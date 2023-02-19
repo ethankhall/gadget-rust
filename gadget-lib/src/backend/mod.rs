@@ -27,7 +27,7 @@ pub trait Backend<'a> {
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct RedirectModel {
     pub redirect_id: i32,
     pub public_ref: String,
