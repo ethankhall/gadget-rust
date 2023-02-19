@@ -41,13 +41,8 @@ pub fn metrics_endpoint() -> impl warp::Reply {
     ))
 }
 
+#[derive(Default)]
 pub struct Metrics;
-
-impl Default for Metrics {
-    fn default() -> Self {
-        Metrics {}
-    }
-}
 
 pub fn track_status(info: warp::filters::log::Info) {
     let status = info.status().as_u16();
@@ -59,7 +54,7 @@ pub fn track_status(info: warp::filters::log::Info) {
         .with_label_values(&[&status.to_string(), path])
         .inc();
     HTTP_REQ_HISTOGRAM
-        .with_label_values(&[&method.as_str(), path])
+        .with_label_values(&[method.as_str(), path])
         .observe(duration_to_seconds(info.elapsed()));
 }
 

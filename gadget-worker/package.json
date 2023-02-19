@@ -1,0 +1,11 @@
+{
+	"private": true,
+	"version": "0.0.0",
+	"scripts": {
+		"deploy": "wrangler publish build/worker/shim.mjs",
+		"dev": "wrangler dev build/worker/shim.mjs --local"
+	},
+	"devDependencies": {
+		"wrangler": "2.1.3"
+	}
+}

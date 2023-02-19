@@ -1,2 +1,3 @@
 target/
-ui-dev/
+node_modules/
+*.crt

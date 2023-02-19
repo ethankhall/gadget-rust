@@ -1,0 +1,15 @@
+name = "gadget-worker"
+workers_dev = true
+
+main = "build/worker/shim.mjs"
+compatibility_date = "2022-01-20"
+
+kv_namespaces = [
+    { binding = "gadget", id = "e8a2781254d241e48ab984d4f4296986", preview_id = "33236aad44d349b3a57ca53bd438582c" },
+]
+
+[vars]
+WORKERS_RS_VERSION = "0.0.9"
+
+[build]
+command = "cargo install -q worker-build && worker-build --release"
