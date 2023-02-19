@@ -265,7 +265,7 @@ async fn run_get(args: &GetArgs, api_opts: &ApiOptions) -> Result<(), CliError> 
             "'{}/{}' will redirect to {}",
             &args.alias,
             &test_dest,
-            redirect.evaluate(&test_dest)
+            redirect.evaluate(test_dest)
         );
     }
     Ok(())
@@ -338,7 +338,7 @@ mod output {
                     .created_by
                     .as_ref()
                     .map(|x| x.username.clone())
-                    .unwrap_or("".to_string()),
+                    .unwrap_or_else(|| "".to_string()),
             }
         }
     }
@@ -347,6 +347,6 @@ mod output {
         let table_redirect: Vec<TableRedirect> =
             input.into_iter().map(TableRedirect::from).collect();
         let table = Table::new(table_redirect).to_string();
-        println!("{}", table);
+        println!("{table}");
     }
 }

@@ -181,7 +181,7 @@ pub async fn list_redirects(
 }
 
 fn is_destination_url(path: &str) -> bool {
-    Url::parse(&path).is_ok()
+    Url::parse(path).is_ok()
 }
 
 #[instrument(skip(context))]

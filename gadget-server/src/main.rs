@@ -105,7 +105,7 @@ async fn main() -> Result<(), &'static str> {
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
-    let _init = tracing_log::LogTracer::init().expect("logging to work correctly");
+    tracing_log::LogTracer::init().expect("logging to work correctly");
 
     let backend_url = matches
         .value_of("DB_CONNECTION")

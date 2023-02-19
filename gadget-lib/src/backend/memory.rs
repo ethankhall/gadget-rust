@@ -9,7 +9,7 @@ pub struct InMemoryBackend {
 impl InMemoryBackend {
     pub fn new(redirects: Vec<RedirectModel>) -> Self {
         Self {
-            storage: Arc::new(RwLock::new(redirects.clone())),
+            storage: Arc::new(RwLock::new(redirects)),
         }
     }
 

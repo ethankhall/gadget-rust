@@ -38,7 +38,7 @@ fn log_request(req: &Request) {
         Date::now().to_string(),
         req.path(),
         req.cf().coordinates().unwrap_or_default(),
-        req.cf().region().unwrap_or("unknown region".into())
+        req.cf().region().unwrap_or_else(|| "unknown region".into())
     );
 }
 
@@ -67,8 +67,8 @@ fn extract_param(ctx: &RouteContext<WorkerStore>, param: &str) -> Option<String>
         Some(value) => value.to_owned(),
     };
 
-    if id.starts_with("/") {
-        id = id.replace("/", "");
+    if id.starts_with('/') {
+        id = id.replace('/', "");
     }
 
     if id.is_empty() {
@@ -180,7 +180,7 @@ async fn handle_any_get(req: Request, ctx: RouteContext<WorkerStore>) -> worker:
         }
     }
 
-    let path = req.path().replace("/", "").replace("%20", " ");
+    let path = req.path().replace('/', "").replace("%20", " ");
     let redirect_ref: Vec<&str> = path.split(' ').collect();
     let redirect_ref = match redirect_ref.first() {
         None => {

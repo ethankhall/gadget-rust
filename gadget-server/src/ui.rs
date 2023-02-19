@@ -46,7 +46,7 @@ pub async fn serve_embedded(
 ) -> Result<warp::reply::Response, std::convert::Infallible> {
     let mut path = path.as_str();
 
-    if path == "" {
+    if path.is_empty() {
         path = "index.html";
     }
 

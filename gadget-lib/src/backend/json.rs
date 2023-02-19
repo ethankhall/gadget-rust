@@ -46,7 +46,7 @@ impl JsonBackend {
 
         Ok(JsonBackend {
             in_memory: backend,
-            file_path: file_path.clone(),
+            file_path,
         })
     }
 

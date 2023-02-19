@@ -48,9 +48,7 @@ pub mod api {
             ApiRedirect {
                 alias: model.alias,
                 destination: model.destination,
-                created_by: model.created_by.map(|name| UserDetails {
-                    username: name.clone(),
-                }),
+                created_by: model.created_by.map(|name| UserDetails { username: name }),
             }
         }
     }
