@@ -1,9 +1,13 @@
 use clap::{ArgGroup, Args, Parser, Subcommand, ValueEnum};
 use dotenv::dotenv;
-use gadget_lib::{api::{RedirectList, ApiRedirect, UpdateRedirect}, AliasRedirect, Redirect, prelude::RedirectModel};
+use gadget_lib::{
+    api::{ApiRedirect, RedirectList, UpdateRedirect},
+    prelude::RedirectModel,
+    AliasRedirect, Redirect,
+};
 use human_panic::setup_panic;
 use log::{debug, error, trace};
-use reqwest::{Method};
+use reqwest::Method;
 use std::path::PathBuf;
 use thiserror::Error as ThisError;
 use url::Url;
@@ -85,8 +89,7 @@ impl ApiOptions {
         let url: Url = format!("{}{}", self.server_name, url_path).parse()?;
         debug!("Request URL is {}", url);
 
-        let mut builder = client
-            .request(method.clone(), url.clone());
+        let mut builder = client.request(method.clone(), url.clone());
 
         if let Some(real_body) = body {
             builder = builder.json(real_body);
@@ -178,7 +181,7 @@ struct GetArgs {
 
     /// When specified, the redirect will be evaluated
     #[clap(long, value_parser)]
-    options: Vec<String>
+    options: Vec<String>,
 }
 
 #[derive(Args, Debug)]
@@ -187,7 +190,6 @@ struct DeleteArgs {
     #[clap(value_parser)]
     alias: String,
 }
-
 
 #[derive(ThisError, Debug)]
 pub enum CliError {
@@ -259,23 +261,32 @@ async fn run_get(args: &GetArgs, api_opts: &ApiOptions) -> Result<(), CliError> 
     let redirect = AliasRedirect::from(body);
 
     for test_dest in &args.options {
-        println!("'{}/{}' will redirect to {}", &args.alias, &test_dest, redirect.evaluate(&test_dest));
+        println!(
+            "'{}/{}' will redirect to {}",
+            &args.alias,
+            &test_dest,
+            redirect.evaluate(&test_dest)
+        );
     }
     Ok(())
 }
 
 async fn run_delete(args: &DeleteArgs, api_opts: &ApiOptions) -> Result<(), CliError> {
     api_opts
-        .make_request::<(), _>(&format!("/_api/redirect/{}", args.alias), Method::DELETE, None)
+        .make_request::<(), _>(
+            &format!("/_api/redirect/{}", args.alias),
+            Method::DELETE,
+            None,
+        )
         .await?;
     Ok(())
 }
 
 async fn run_create(args: &TupleArgs, api_opts: &ApiOptions) -> Result<(), CliError> {
     let redirect = ApiRedirect {
-        alias: args.alias.clone(), 
+        alias: args.alias.clone(),
         destination: args.destination.clone(),
-        created_by: None
+        created_by: None,
     };
 
     let body: RedirectModel = api_opts
@@ -289,11 +300,15 @@ async fn run_create(args: &TupleArgs, api_opts: &ApiOptions) -> Result<(), CliEr
 async fn run_update(args: &TupleArgs, api_opts: &ApiOptions) -> Result<(), CliError> {
     let redirect = UpdateRedirect {
         destination: args.destination.clone(),
-        created_by: None
+        created_by: None,
     };
 
     let body: RedirectModel = api_opts
-        .make_request(&format!("/_api/redirect/{}", args.alias), Method::PUT, Some(&redirect))
+        .make_request(
+            &format!("/_api/redirect/{}", args.alias),
+            Method::PUT,
+            Some(&redirect),
+        )
         .await?;
     debug!("Response from worker: {:?}", body);
     println!("Updated {} to point at {}", body.alias, body.destination);
