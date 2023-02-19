@@ -48,7 +48,9 @@ pub mod api {
             ApiRedirect {
                 alias: model.alias,
                 destination: model.destination,
-                created_by: model.created_by.map(|name| UserDetails { username: name }),
+                created_by: model.created_by.map(|name| UserDetails {
+                    username: name,
+                }),
             }
         }
     }
@@ -191,7 +193,11 @@ impl Redirect for AliasRedirect {
         };
 
         debug!("Parsed Input: {}", parsed_input);
-        let mut inputs: Vec<&str> = parsed_input.split(' ').collect();
+        let mut inputs: Vec<&str> = if parsed_input.is_empty() {
+            vec![]
+        } else {
+            parsed_input.split(' ').collect()
+        };
 
         let part = if inputs.len() <= self.destinations.len() {
             match self.destinations.get(inputs.len()) {
